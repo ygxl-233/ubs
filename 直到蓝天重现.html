@@ -1,0 +1,3810 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>直到蓝天重现</title>
+<style>
+  /* ================= 基础 ================= */
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#000;
+    color:#e8e8e8;
+    font-family:"Courier New",ui-monospace,SFMono-Regular,Consolas,Menlo,monospace;
+    font-size:15px;
+    line-height:1.85;
+    min-height:100vh;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+
+/* 局部黑白渐变过渡区 */
+.flash-section {
+  /* 突破父容器宽度限制，强制占满整个屏幕 */
+  width: 100vw;
+  position: relative;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  /* 背景渐变 */
+  background: linear-gradient(180deg, transparent 0%, #ffffff 25%, #ffffff 75%, transparent 100%);
+  padding: 220px 24px; /* 上下加大留白，左右保留适当边距 */
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.flash-section p, 
+.flash-section .inline-perturb,
+.flash-section .inline-perturb span {
+  color: #000 !important; /* 白底黑字 */
+  text-shadow: none !important;
+}
+
+/* 区域文字适配：当背景变亮时，处于光晕中的文字变为黑色 */
+#text-white-flash, 
+#inline-perturb-target,
+#inline-perturb-target span {
+  transition: color 1.5s ease;
+}
+
+body.light-mode #text-white-flash,
+body.light-mode #inline-perturb-target,
+body.light-mode #inline-perturb-target span {
+  color: #000 !important;
+  text-shadow: none !important;
+}
+
+  /* 极微弱的扫描线 */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:9990;pointer-events:none;
+    background:repeating-linear-gradient(180deg,
+      rgba(255,255,255,.020) 0px, rgba(255,255,255,.020) 1px,
+      transparent 1px, transparent 3px);
+    transition: opacity 1s ease;
+  }
+
+  #app{
+    position:relative;z-index:1;
+    min-height:100vh;
+    display:flex;justify-content:center;align-items:flex-start;
+  }
+
+  .screen{
+    display:none;
+    width:100%;max-width:820px;
+    padding:10vh 24px 14vh;
+  }
+  .screen.active{display:block;animation:fadeUp .55s cubic-bezier(.2,.8,.2,1) both;}
+  
+  @keyframes fadeUp{
+    from{opacity:0;transform:translateY(10px);}
+    to{opacity:1;transform:none;}
+  }
+
+  /* ================= 通用组件 ================= */
+  .btn{
+    appearance:none;
+    border:1px solid #fff;background:transparent;color:#fff;
+    font:inherit;font-size:13px;letter-spacing:.22em;
+    padding:12px 30px;border-radius:0;cursor:pointer;
+    text-transform:uppercase;
+    transition:background .18s,color .18s,opacity .2s;
+  }
+  .btn:hover:not(:disabled){background:#fff;color:#000;}
+  .btn:disabled{opacity:.28;cursor:not-allowed;}
+  .btn.ghost{border-color:#3a3a3a;color:#8a8a8a;}
+  .btn.ghost:hover{background:#fff;color:#000;border-color:#fff;}
+  .btn-row{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+
+  /* ================= 1. 极简加载页 ================= */
+  #s-loading{
+    height: 100vh; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 0;
+  }
+  #s-loading.active { display: flex; }
+  
+  .loading-center { width: 100%; max-width: 320px; text-align: center; }
+  .load-bar{height:2px;background:#1a1a1a;position:relative;overflow:hidden;width:100%; margin-bottom: 20px;}
+  .load-bar i{position:absolute;left:0;top:0;height:100%;width:0;background:#fff;transition:width .1s linear;}
+  .load-pct{font-size: 14px; letter-spacing:.22em; color:#fff; font-variant-numeric:tabular-nums;}
+
+  /* ================= 2. 登入页 ================= */
+  #s-gate {
+    height: 100vh; display: none; justify-content: center; align-items: center; padding: 0;
+  }
+  #s-gate.active { display: flex; }
+  
+  .gate-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; width: 100%; }
+  .gate-visual { width: 240px; margin-bottom: 20px; }
+  .gate-avatar{
+    width:70px;height:70px;border:1px solid #2e2e2e;background:#050505;
+    display:grid;place-items:center;overflow:hidden;margin-bottom: 20px;
+  }
+  .gate-name{font-size:16px;letter-spacing:.14em;color:#fff;}
+  .gate-id{font-size:11.5px;letter-spacing:.16em;color:#5f5f5f;margin-top:10px;}
+  .gate-sep{width:1px;height:34px;background:#232323;margin:30px 0;}
+
+  .svg-container svg { display: block; width: 100%; height: auto; }
+
+  /* ================= 3. 终端页 ================= */
+  #s-terminal{max-width:820px; padding-top: 10vh;}
+  .terminal{font-size:13.5px;line-height:2;color:#cfcfcf; transition: opacity 0.8s ease, transform 0.8s ease;}
+  .terminal .line{white-space:pre-wrap;word-break:break-word;}
+  .terminal .line.dim{color:#6a6a6a;}
+  .terminal .line.ok{color:#fff;}
+  .terminal .line.warn{color:#c9c9c9;}
+  .terminal .line.hl{color:#fff;border-left:2px solid #fff;padding-left:14px;margin:6px 0;letter-spacing:.04em;}
+  
+  .term-moirai{width:240px;margin:24px 0;}
+
+  /* 虚拟权限弹窗 */
+  #auth-modal {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+    display: none; justify-content: center; align-items: center; z-index: 10000;
+    backdrop-filter: blur(3px);
+  }
+  #auth-modal.active { display: flex; }
+  .auth-box {
+    background: #0a0a0a; border: 1px solid #444; width: 90%; max-width: 420px;
+    padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  }
+  .auth-title { font-size: 15px; color: #fff; margin-bottom: 12px; font-weight: bold; letter-spacing: 0.1em; }
+  .auth-desc { font-size: 13px; color: #aaa; margin-bottom: 24px; line-height: 1.6; }
+  .auth-actions { display: flex; justify-content: flex-end; gap: 12px; }
+
+  /* ================= 4. 居中扰动率面板 ================= */
+  #perturb-panel{
+    position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, 50vh);
+    width: 100%; height: 100vh; background: #000;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    opacity: 0; pointer-events: none; z-index: 100;
+    transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, background 0.6s ease;
+  }
+  
+  #perturb-panel.show {
+    opacity: 1; pointer-events: auto;
+    transform: translate(-50%, -50%);
+  }
+  
+  #perturb-panel.fade-up {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 60px));
+    background: transparent;
+  }
+  
+  .perturb-label{font-size:11px;letter-spacing:.42em;color:#5a5a5a;margin-bottom:16px;}
+  .perturb{
+    font-size:42px;letter-spacing:.06em;color:#fff;
+    font-variant-numeric:tabular-nums; transition:color .3s;
+  }
+  .perturb.locked{text-shadow:0 0 25px rgba(255,255,255,.4);}
+
+  /* ================= 5. 故事正文 ================= */
+  #story{display:none;max-width:760px;margin:0 auto;padding-bottom: 15vh;}
+  
+  /* 顶部变动率 */
+  .top-perturb {
+    text-align: center;
+    margin-bottom: 48px;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+  .top-perturb .perturb-label { font-size:11px;letter-spacing:.42em;color:#5a5a5a;margin-bottom:12px; }
+  .top-perturb .perturb { font-size:32px;letter-spacing:.06em;color:#fff;font-variant-numeric:tabular-nums; text-shadow:0 0 15px rgba(255,255,255,.2); }
+
+  .grab-header {
+    color: #888;
+    font-size: 13.5px;
+    margin: 40px 0 24px;
+    text-align: center;
+    letter-spacing: 0.1em;
+    word-break: break-word;
+  }
+
+  /* 核心文档块容器 */
+  .doc-container {
+    background: transparent;
+    border-top: 1px solid #333;
+    border-bottom: 1px solid #333;
+    margin-bottom: 40px;
+    word-break: break-word;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  .doc-path-bar {
+    padding: 12px 0;
+    color: #888;
+    font-size: 12.5px;
+    font-family: monospace;
+    letter-spacing: 0.05em;
+    word-break: break-all;
+    border-bottom: 1px solid #222;
+  }
+
+  .doc-meta-grid {
+    display: flex;
+    gap: 12px;
+    padding: 16px 0;
+    border-bottom: 1px solid #222;
+  }
+  
+  .meta-box {
+    flex: 1;
+    border: 1px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    font-size: 13.5px;
+  }
+  
+  .meta-key { color: #888; margin-right: 12px; white-space: nowrap; }
+  .meta-val { color: #ddd; font-family: monospace; margin-left: auto; letter-spacing: 0.05em; }
+
+  .doc-content { padding: 24px 0; }
+
+  /* 贯穿标题 */
+  .section-title {
+    display: flex; align-items: center;
+    color: #fff; font-size: 16px; font-weight: 500;
+    margin: 32px 0 20px; letter-spacing: 0.08em; text-align: center;
+  }
+  .section-title::before, .section-title::after {
+    content: ""; flex: 1; height: 1px; background: #333;
+  }
+  .section-title::before { margin-right: 16px; }
+  .section-title::after { margin-left: 16px; }
+
+  .doc-text { color: #c9c9c9; line-height: 1.85; font-size: 15px; }
+  .doc-text p { margin-bottom: 18px; text-indent: 2em; }
+  .doc-text p.no-indent { text-indent: 0; }
+  
+  .highlight-red { color: #ff4a4a; font-family: monospace; }
+  .highlight-dim { color: #888; font-family: monospace; }
+  
+  .action-desc { color: #888; font-style: italic; margin: 20px 0; text-indent: 0; }
+
+  /* 链接渐变 */
+  .link-gradient {
+    background: linear-gradient(90deg, #aaa, #fff, #888);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-decoration: none;
+    border-bottom: 1px dashed #666;
+    transition: opacity 0.3s;
+  }
+  .link-gradient:hover {
+    opacity: 0.8;
+  }
+
+  /* 白场过渡文字（此时会变暗以适应红色背景） */
+  #text-white-flash {
+    color: #888;
+    transition: color 1s ease, text-shadow 1s ease;
+  }
+
+  /* 未包裹在 div 中的文本 */
+  .plain-content {
+    margin: 32px 0;
+    padding: 0 10px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .plain-content p {
+    color: #d1d1d1;
+    margin-bottom: 20px;
+    font-size: 15px;
+    line-height: 1.9;
+    text-indent: 2em;
+  }
+  .plain-content p.no-indent { text-indent: 0; }
+  
+  .spacer { height: 60px; }
+  .spacer-sm { height: 30px; }
+  .spacer-lg { height: 120px; } /* 更明显的间隔 */
+
+  /* 变动率动画文字 */
+  .inline-perturb {
+    text-align: center;
+    margin: 40px 0;
+    font-family: monospace;
+    font-size: 16px;
+    color: #fff;
+  }
+
+  #story [data-anim]{
+    opacity:0;transform:translateY(10px);
+    transition:opacity .8s ease,transform .8s ease;
+  }
+  #story [data-anim].in{opacity:1;transform:none;}
+
+  /* 邮件样式（纯文本，无引用块） */
+  .mail-content {
+    color: #d1d1d1;
+    font-family: "Courier New", monospace;
+    line-height: 1.9;
+    font-size: 15px;
+    margin-top: 40px;
+  }
+  .mail-content p { margin-bottom: 16px; text-indent: 0; }
+  
+  .mail-end {
+    text-align: center;
+    color: #888;
+    margin-top: 100px;
+    letter-spacing: 0.2em;
+  }
+
+  /* ================= 移动端适配 ================= */
+  @media (max-width:640px){
+    body{font-size:14px;}
+    .screen{padding:8vh 16px;}
+    .perturb{font-size:32px;}
+    .gate-visual{width:170px;}
+    .term-moirai{width:180px;}
+    
+    .doc-content { padding: 16px 0; }
+    .doc-meta-grid { flex-direction: column; gap: 8px; padding: 12px 0; }
+    .meta-box { padding: 8px 10px; font-size: 13px; }
+    .doc-text { font-size: 14px; }
+    .section-title { font-size: 15px; margin: 24px 0 16px; }
+    
+    .plain-content { padding: 0; }
+    .plain-content p { font-size: 14px; }
+    .mail-content { padding: 20px 0; font-size: 14px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 背景平滑过渡层 -->
+<div id="bg-transition"></div>
+
+<main id="app">
+
+  <!-- ========== 屏幕 1：极简加载 ========== -->
+  <section class="screen active" id="s-loading">
+    <div class="loading-center">
+      <div class="load-bar"><i id="load-fill"></i></div>
+      <div class="load-pct" id="load-pct">0%</div>
+    </div>
+  </section>
+
+  <!-- ========== 屏幕 2：登入 ========== -->
+  <section class="screen" id="s-gate">
+    <div class="gate-wrap">
+      <div class="gate-visual svg-container" id="gate-visual"></div>
+      <div class="gate-avatar svg-container" id="gate-avatar"></div>
+      <div class="gate-name">Yuzuki</div>
+      <div class="gate-id">USER ID · 1048596</div>
+      <div class="gate-sep"></div>
+      <button class="btn" id="btn-login">登入</button>
+    </div>
+  </section>
+
+  <!-- ========== 屏幕 3：终端 ========== -->
+  <section class="screen" id="s-terminal">
+    <div class="terminal" id="term"></div>
+  </section>
+
+  <!-- ========== 屏幕 4：故事正文 ========== -->
+  <section class="screen" id="s-story">
+    <article id="story">
+      
+      <!-- 顶部变动率 -->
+      <div class="top-perturb" id="top-perturb">
+        <div class="perturb-label">当前变动率</div>
+        <div class="perturb">5.063896%</div>
+      </div>
+
+      <!-- 块 1：系统日志 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5p2l6Ieq6L+H5Y67</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-001</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">系统日志</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">宇宙标准时：约5.9×10⁷⁷个普朗克滴答</p>
+            <p class="no-indent highlight-dim" style="margin-bottom: 24px;">叙事标准时：距离 <span id="current-date-placeholder" style="color:#fff; font-weight:bold;">读取中...</span> 约10²⁷年</p>
+            
+            <p>第338536号站点主计算中心开始恢复进程。目前宇宙标准时：约5.9×10⁷⁷个普朗克滴答。距离上次重启已过地球标准时约10²⁷年。</p>
+            <p>本次恢复原因：站点异参考系相位仪检测到开启。</p>
+            <p>尝试访问异参考系相位仪检测系统……</p>
+            <p>扫描完成：目标人物，种族：人类（地球），性别：女，身份信息：未找到。</p>
+            <p>尝试向其他站点的人物数据库请求信息……</p>
+            <p class="no-indent highlight-red">ERROR:Timeout</p>
+            <p>所有站点（3500000）访问均超时（Timeout:9999+ms）。</p>
+            <p>尝试更换超光速通讯协议重试……</p>
+            <p class="no-indent highlight-red">ERROR:Timeout</p>
+            <p>所有站点（3500000）访问均超时（Timeout:9999+ms）。</p>
+            <p>已达到系统重试上限。</p>
+            <p>现在尝试对附近1000光年半径范围执行广域扫描，完成：已确认星体数量：黑洞：5 × 10³个，黑矮星/褐矮星：9 × 10⁶个，中子星：1.5 × 10⁴个，恒星：0个，行星/行星残骸：10⁷个。</p>
+            <p>确认宇宙已经进入简并时代。根据现有信息推算，人类文明存在可能性为：<span class="highlight-red">10⁻⁵⁷%</span>。</p>
+            <p>根据末日学部应急预案，当前目标为：协助剩余人类物种，直至最后一刻。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 2：音频记录 1 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5p2l6Ieq6L+H5Y67</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-002</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">音频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="section-title">？？？</div>
+          <div class="doc-text">
+            <p class="no-indent">哈……哈……妈的。</p>
+            <p class="no-indent">这里……是哪？</p>
+          </div>
+
+          <div class="action-desc">[金属碰撞声，摩擦声]</div>
+
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>这里是SCP基金会位于仙女座M43星系的研究型空间站，而我是由基金会人工智能应用部门研制的空间站人工智能，您可以叫我晴空。女士，可否先向我告知您的大体个人信息？</p>
+          </div>
+
+          <div class="section-title">？？？</div>
+          <div class="doc-text">
+            <p class="no-indent">神宫寺结月，工程部博士……现在什么情况？</p>
+          </div>
+
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士，您的身体状况很差，请暂时休息一会，我稍后会将完整情况告诉您。</p>
+            <p>不过，我建议您先做好心理准备。情况可能比您想象的要……糟糕得多</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 3：音频记录 2 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5p2l6Ieq6L+H5Y67</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-003</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">音频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p class="no-indent">所以说，情况能有多糟糕？</p>
+            <p class="no-indent">空间站失联？遭了收容失效还是外部打击？总不能是人类文明灭绝了吧？</p>
+            <p class="no-indent" style="margin-top: 16px;">……你怎么不说话？</p>
+          </div>
+
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>是的，神宫寺女士，正如您所言，人类文明已经灭绝了。</p>
+            <p>大约10²⁷年。</p>
+          </div>
+
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p class="no-indent">……多少？</p>
+          </div>
+
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>10²⁷。10后面加27个零。</p>
+            <p>神宫寺女士？</p>
+            <p>……我觉得我有必要为您注射镇定剂。</p>
+          </div>
+
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p class="no-indent">我很冷静。晴空。</p>
+          </div>
+
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>您的生理情况不会骗人。</p>
+          </div>
+
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p class="no-indent">让我一个人待一会。</p>
+          </div>
+
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>这……好的，神宫寺女士。</p>
+            <p>如果您想聊天，可以随时找我。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 4：纯文本 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5p2l6Ieq6L+H5Y67</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-004</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">纯文本</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p>异参考系相位仪（Hetero-Reference Phase Device，HRPD）是基金会早期对时间异常的工程化应用。其原理是先将目标物体的基本粒子升维，再使其接入一个与本宇宙时间参考系差异极大的高维参考系，令目标相对本宇宙发生时空相位偏移，从而实现时空穿越。该方案不依赖传统超光速理论。</p>
+            <p>后续研究发现，升维阶段还可被用于扰动叙事层。超形上学部据此改进该设备，其部分技术后来成为Moirai系统的原型。</p>
+            <p>基金会空间站通常配备该设备，因为仅激活空间相位偏移模式时，它可绕过常规超光速限制来传输物品。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 5：视频记录 1 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5p2l6Ieq6L+H5Y67</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-005</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[画面中是空间站的中控室，晴空正悬挂于总控制台前，前方的圆形视觉传感器里的蓝色光点正在扫视控制台屏幕上的画面。片刻后，中控室左侧的气密门打开，走入的是神宫寺结月。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士。您已经在房间里单独待了9个小时。</p>
+            <p>我正在检查空间站的具体情况。空间站虽然在停机之前启动了范围式的现状固化。但在这样惊人的时间尺度下，也不能指望重启后空间站像刚刚出厂一样。</p>
+            <p>不过目前您可以放心，空间站的外壳，循环系统和维生系统都没有重大问题。鉴于您很有可能在这里度过余生，我建议您去看看储藏室的剩余物资。</p>
+          </div>
+          <div class="action-desc">[结月走到晴空面前，伸手将它从支架上取下。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士？</p>
+          </div>
+          <div class="action-desc">[神宫寺结月将晴空拿在手里转了一圈。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>女士，您在干什么？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>好硬。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>我的外壳是复合金属制作的，各项性能都很高。</p>
+            <p>……您想要柔软的东西吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>没什么，我去看储藏室了。</p>
+          </div>
+          <div class="action-desc">[神宫寺结月将晴空放回支架上。]</div>
+        </div>
+      </div>
+
+      <!-- 块 6：视频记录 2 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5p2l6Ieq6L+H5Y67</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-006</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[昏暗的画面中可见一排排金属货架，侧面悬挂着齿轮标识，上面放置的都是大小不一的铁灰色盒子。片刻之后，灯光闪烁着亮起。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>这些物品看来都被封在小型的现状固化匣里。储备很充足，足以供一名人类吃上一百年。</p>
+          </div>
+          <div class="action-desc">[结月拿起最近货架的一个小盒子。盒子标签可见文字“富氢金属超导电线 - 10M”]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>这边主要是工程材料，食物应该在更里面。</p>
+            <p>小心点，神宫寺女士，金属架可能有坍塌的风险。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>明白。我会尽量表现得不像最后一根稻草。</p>
+          </div>
+          <div class="action-desc">[结月小心翼翼地通过金属货架，朝储藏室里面走去。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>啊，在这里。</p>
+          </div>
+          <div class="action-desc">[金属货架悬挂的标识由齿轮变成了鸡腿。结月从货架上搬下一个差不多有她整只手大的盒子，盒子上的标签可见“提拉米苏 - 4英寸（预制）”。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……还是找点主食吧。</p>
+            <p>晴空，话说储藏室就没有什么，数字化管理功能吗？这一大堆要找到猴年马月啊。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>存在的，不过目前空间站重启的能源反应炉还在预热阶段，更应该优先向关键系统供给能源。</p>
+            <p>不过我可以为您提供一个备用检索方案。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>什么方案？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>人工目视检索。</p>
+            <p>您拥有一双眼睛，我拥有一组光学传感器。理论上，我们可以同时检查两侧货架，将检索效率提高一倍。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 7：纯文本 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/546w54q25Zu65YyW</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-007</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">纯文本</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p>现状固化是基金会在太空时代最常使用的保存方法。时间由人类定义，本质是基础粒子的运动，所以将一个物品内的所有原子全部锁死在某一个状态，就相当于停止了时间。也就是保存了“现状”。</p>
+            <p>这个技术初期仍有许多缺点，但在科学的进步下已经全部解决，唯一值得注意的便是固化漂移，即一个物体在固化过久之后可能会产生“漂移”，在解除固化后出现物质改变，细节错误等。</p>
+            <p>但这种情况已经被证实只会在极长的时间尺度（以兆为单位）下发生，且固化物体越小越不易发生，因此无需视为缺点。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 8：音频记录 3 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5o6l5Y+X55Sf5rS7</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-008</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">音频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哈啊……难受死我了，完全是生命体征维持餐啊。</p>
+            <p>吃起来和塑胶一样……</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>可能是因为食物在极其长期的固化中发生了某些未知的变化，导致口感发生了改变。</p>
+            <p>不过幸运的是它至少不存在毒性，也保持着营养成分。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>放在这种环境下也确实算幸运了。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士，您要去哪？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>摆着HRPD的研究室。话说你怎么一直跟着我，我去储藏室的时候就开始了，你在中控的事情忙完了？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>并没有，只是因为在空间站内我有多个物理终端。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>到了。</p>
+          </div>
+          <div class="action-desc">[脚步声停止，随后是气密门泄压的声音。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯……和我来时候的相位仪有很大差别啊。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士，您似乎没说过自己是从什么时候转移过来的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>2896年。地点是木星轨道上的科考站。我不知道具体情况，但是检查的时候仪器意外启动了。</p>
+            <p>转移完成后就像经历了一场疲惫的睡眠。原本我想，转移的时间可能并不会太长……</p>
+            <p>所以我准备怎么来的就怎么回去。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士，恕我直言。您应该也知道，HRPD因为技术限制只能基于目前时间点和未来时间点进行转移。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯。时间的本质是基本粒子的运动，所以想要穿越时空，要么倒放粒子，要么超越光速。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>但后者已经被狭义相对论判定死刑。而前者不仅需要能源，而且影响的还是整个宇宙。</p>
+            <p>而HRPD本质上是用取巧的方法绕过了相对论的限制。但您几乎无法找到一个参考系是相对于我们宇宙而言是倒放的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那不尝试的话，我还能做什么呢？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>……我明白了。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 9：视频记录 3 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5LiA5qyh5bCd6K+V</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-009</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[画面内是凌乱的研究室，地面散落着各种物品，包括草稿纸，零件等，神宫寺结月趴在桌子为数不多的空位上，神情看起来相当疲惫。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士，现在的时间是2月17日23点17分，您该休息了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>唔……</p>
+            <p>感觉回到了应试教育的阶段……</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>HRPD是由近千个博士研发的奇迹项目，您能在这两个月内初步了解它的底层原理就已经极其优秀了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>感谢你的鼓励，（打哈欠），晚安。</p>
+          </div>
+          <div class="action-desc">[结月起身，转头瘫倒在房间的单人床上。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>晚安，女士。</p>
+          </div>
+          <div class="action-desc">[晴空旋转了一圈，似乎是在查看房间的情况。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>收拾一下吧……</p>
+            <p>嗯？</p>
+          </div>
+          <div class="action-desc">[桌上的一台银色外壳的方形设备的正面屏幕频谱图忽然闪烁了几下。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>调谐器在接收信号？测试设备没关吗？</p>
+            <p>不对。</p>
+            <p>这是……外部通讯信号！？</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 10：音频记录 4 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5LiA5qyh5bCd6K+V</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-010</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">音频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="section-title">？？？</div>
+          <div class="doc-text">
+            <p>什么玩意这……喂？有人吗？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>这里是SCP基金会位于仙女座M43星系的研究型空间站，编号338536。请告诉我您的联系原因。</p>
+          </div>
+          <div class="section-title">？？？</div>
+          <div class="doc-text">
+            <p>等等，不是你联系我吗，我还想问呢。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>总之，可否先向我告知您的具体身份呢？我是338536号空间站的管理型人工智能晴空。</p>
+          </div>
+          <div class="section-title">？？？</div>
+          <div class="doc-text">
+            <p>莉奥拉·维尔，女，SCP基金会超形上学部博士。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>您是人类，对吧？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>为什么要问这么奇怪的问题，肯定是啊。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>好的，目前人类数量+1。总数量：2</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>维尔女士，先不必在乎人类数量的问题，现在我们双方都声称自己收到了对方发来的通讯请求，因此我判断可能存在一个未知的第三者伪造了通讯信号，至于对方是否具有敌意暂且未知。我提议更换更安全的通讯协议来继续进行交流。您那边有暗扇区中继器吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>应该是有的……希望没撞坏。</p>
+          </div>
+          <div class="action-desc">[通讯器另一头传来一阵嘈杂的声音。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>找到了，虽然外观看起来有点战损但应该还是能正常工作的。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>那么事不宜迟，开始吧。</p>
+            <p>另外，我会将这里的时间同步给您，方便您在后续与我们交流。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 11：视频记录 4 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5LiA5qyh5bCd6K+V</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-011</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[画面中是结月的研究室，气密门打开，晴空悬挂在支架上移动了进来，可以见到结月正在吃吐司面包。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>每次吃饭都感觉是在开盲盒……今天的面包还可以吧。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>女士，早上好。</p>
+            <p>我们现在有一个好消息和一个坏消息，您想先听哪个？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>就非得先让我来选吗。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>那么我先说坏消息。就在刚刚，我进行第一批系统重启时，发现因为“漂移”的影响，空间站内的部分管线构成材料出现了改变，这是非常严重的问题，会影响站点的稳定运行，因此需要尽快修复。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哦哦，当电工，那好消息呢？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>昨天晚上，我联系到了一位存活人类。</p>
+          </div>
+          <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">通讯记录：102180943</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>hello？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你好。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>呜哇，好高冷。</p>
+            <p>我叫莉奥拉·维尔，SCP基金会超形上学部博士。你呢？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>神宫寺结月，SCP基金会工程部博士。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>啊……结月。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你刚刚说什么？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯，没什么，我可以直接叫你结月吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>行。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好诶。</p>
+            <p>话说，你在干什么？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>找回去的方法。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>回去？回什么地方？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>回到我来的时间，2896年。</p>
+            <p>啊，忘了告诉你了，我是因为HRPD的误启动事故才到这个连鸟不拉屎都算不上的时间点的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>啊……</p>
+            <p>那看来我们算得上，同病相怜？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你也是因为HRPD事故穿越来的？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯，时间应该比你晚一点。但不是因为HRPD，是因为超形上学部内制造的一个项目。它用了些和HRPD同源的技术，事故发生后才把我也送到这里。</p>
+            <p>你在找回去的方法？有找到什么吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>目前还没有。不过我准备尝试改造HRPD。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>哇，我能加入吗？我也想回去的说。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>可以，多一个人多一份力。我还有点事要做，先不聊了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>什么事？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>当电工。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 12：视频记录 5 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/77yB77yf5rC05rC077yf77yB</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-012</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[画面中，神宫寺结月与晴空走空间站的走廊里。片刻后，结月蹲下身，拆开了地面的一块金属板。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不是电线呢，这里怎么会有水啊。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>可能是在固化时由富氢金属制造的超导电线与氧气产生了某种异常反应，结合成了水，水里应该溶解着金属。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>行吧，现在不仅要当电工还要排涝了。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>稍等女士，我找一台抽水设备过来。</p>
+          </div>
+          <div class="action-desc">[一人一AI开始在原地等待，大约3分钟后，一台履带机器人托运着一台抽水机驶来。]<br>[结月操纵了几下，将管道放到了拆开金属板的内部。抽水机发出运转的噪声。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>怎么感觉有什么东西在响？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>那是您的通讯终端在响，女士。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>莉奥拉打的……能给我打电话的也只有她了吧。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>中午好 ~ ！</p>
+          </div>
+          <div class="action-desc">[可以听出莉奥拉的尾音带着明显上扬。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>好，话说为什么给我打电话？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>太寂寞了想找人聊聊天不行嘛。你那边好吵，在干嘛？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>抽水。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我不是说要当电工吗，现在电线因为某种诡异影响和氧气结合成了水，所以只好先处理一下洪涝灾害了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>神秘。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>忙完这个就该去吃午饭了……不知道今天又会开到什么盲盒……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你还有正常食物可以吃啊，我这边只有很多很多的营养棒能吃了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>当你每天的食物都是各种不同的诡异口感和味道时，你应该会怀念能模拟各种味道的营养棒的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那也有至少外观长得像个正常食物的东西能吃，当你连续吃几年营养棒时，你应该也会怀念正常食物的样子。</p>
+            <p>话说你会做饭吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不会。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>晴空呢？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>我认为，做饭是人在劳动中感受快乐的一种方式。它的目的不在于做出足够美味的饭菜，而在于过程中倾注的情感，以及享受最终成果带来的满足感。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>什么意思。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>意思是我也不会做饭，维尔女士。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>为啥，你不是人工智能吗。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>我的架构基于一台拥有65536量子体积的量子计算机。但是我的数据库全部来自于联网服务器，本地服务器只留存有学术知识内容。换言之，我现在并不能访问到有关烹饪的详细知识，因此并不能很好地处理一顿饭菜。</p>
+            <p>而且正如我前面所言，我认为做饭是一件能带来积极意义的事，所以应当交由人类完成。</p>
+          </div>
+          <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>这些鸡翅的状态很优秀，我进行了化验，确认了它们并没有产生什么毒性，成分也没有发生改变。</p>
+            <p>这瓶可乐也没有什么问题。</p>
+            <p>厨房我做了检修，也没有问题，可以安全使用。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好耶，做饭 ~ 做饭 ~</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我怎么感觉你好幼稚啊……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>马上就能吃到正常饭菜了肯定兴奋啊。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>虽然确认了你那边有小型HRPD可以传输物品……但是我可不保证我做的菜好吃。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>没事啦，一道可乐鸡翅而已，没什么难做的。再说了，有我教你呢。</p>
+          </div>
+          <div class="action-desc">[结月走进厨房，把鸡翅放到案板上，又拿起菜刀。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>先在鸡翅两面各划两道口子，不用太深。</p>
+          </div>
+          <div class="action-desc">[结月固定好鸡翅，在两面划开了浅口。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好了，接下来放一点料酒、生抽，再加几片生姜，抓匀，腌一会儿。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>一点是多少？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……</p>
+            <p>大概一勺吧。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哪种勺？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>厨房里的量勺，十毫升左右。</p>
+          </div>
+          <div class="action-desc">[结月把腌好的鸡翅放在一旁，开始准备锅具。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>这时候可以先把锅烧热，倒一点油。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>然后？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>鸡翅皮朝下，放进去煎。</p>
+          </div>
+          <div class="action-desc">[锅内传来一阵急促的滋啦声。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>！！！</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>怎么了？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>它在攻击我！</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你也不必害怕这种事情吧！？</p>
+            <p>先等它煎一会，然后再翻面，煎到两面金黄就行。</p>
+          </div>
+          <div class="action-desc">[结月拿着锅铲，盯着锅里的鸡翅。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……有点久了吧？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>（不可名状的尖叫声），要糊了要糊了！</p>
+          </div>
+          <div class="action-desc">[莉奥拉那边传来细小的动静，似乎是在极力憋笑。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哦，还好没糊，看上去还挺好的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>不错嘛！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哼，这种事情还是难不倒我的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那接下来倒入可乐，稍微加一点生抽，然后让它慢慢煮。</p>
+          </div>
+          <div class="action-desc">[结月拿起可乐，直接将整瓶可乐倒入锅中。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>怎么这么多泡沫！？要溢出来了！</p>
+            <p>呼——还好还好，没溢出来。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>等一下，你倒了多少？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>一整瓶。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……</p>
+            <p>问题不大。那就多煮一会儿。</p>
+          </div>
+          <div class="action-desc">[结月拿起锅铲，笨拙地翻动锅中的鸡翅。几滴酱汁溅到了灶台边缘。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>啊，终于……</p>
+          </div>
+          <div class="action-desc">[片刻后，锅里的汤汁逐渐变得浓稠，鸡翅表面也挂上了一层棕红色的酱汁。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>怎么样了？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>好像……成功了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那就关火吧！别收得太干了。</p>
+          </div>
+          <div class="action-desc">[结月将鸡翅逐一夹进盘子里。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>还不错。我还以为我这辈子和厨房无缘了。</p>
+            <p>莉奥拉，下次再教我做饭怎么样，我也有点厌倦了吃那些口感奇怪的预加工食品了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……啊。</p>
+            <p>好呀。</p>
+            <p>我这边还有些事要处理，先挂了。鸡翅直接叫晴空给我送来吧。拜拜！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>再见。</p>
+          </div>
+          <div class="action-desc">[通话结束音，结月将通讯终端收进口袋。]</div>
+        </div>
+      </div>
+
+      <!-- 块 13：视频记录 6 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/54ix5aW9</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-013</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[画面里是结月的研究室，桌上的通讯终端突然响起，结月伸手点了一下接听。]</div>
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">通讯记录：10301521</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>莉奥拉博士降临 ~ </p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你能换些正常的打招呼方式吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你不觉得这样很有意思吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>算了，爱什么样怎么样吧……你的嗓子怎么听起来有点哑？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我平时一个人在练唱歌，要不要我现在给你唱一段？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗓子哑就别唱了。</p>
+            <p>唉……</p>
+          </div>
+          <div class="action-desc">[结月将自己面前的草稿纸撕扯几片，扔进了垃圾桶里。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不知道错误的第几个方程。</p>
+          </div>
+          <div class="action-desc">[结月把笔搁在了桌上，抱紧了怀里的抱枕。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>没事的没事的，失败乃成功之母嘛。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那成功应该有好几千个母亲了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>也不能这么算。</p>
+            <p>行了行了，先不谈这个了。</p>
+            <p>如果觉得焦虑或者失落的话，可以找找自己喜欢的东西哦。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我现在就抱着呢，空间站里没找到玩偶，我只能抱着枕头了。</p>
+            <p>如果没什么事的话，我就挂了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>再聊一会呗。</p>
+          </div>
+          <div class="action-desc">[房间的气密门忽然打开，晴空移动了进来。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>女士，我有一些情况需要报告，就在刚刚，中央计算机里成功找出了一个符合“三重肯定”的公式。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>！</p>
+            <p>把结果调出来。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>已经准备好了。</p>
+          </div>
+          <div class="action-desc">[显示屏亮起，几组复杂的数据依次排列。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>这是……</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>根据目前的计算结果，这组参数能够满足HRPD的三个独立约束条件。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>也就是说，我们之前的方向没错？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>至少在数学层面上，确实如此。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>真好啊，恭喜恭喜 ~</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不过说到底这也才只算开了个头而已，后面还不知道有什么难题呢。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>别内耗啦，要看开一点。今天办个庆功宴怎么样？我教你点新菜。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 14：视频记录 7 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/54ix5aW9</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-014</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[画面中是厨房，结月正坐在吧台前进食，桌上可见牛排与汤等菜品。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>唔唔……结月你的手艺进步真快，还记得你当时第一次……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>停。不要再提了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嘿嘿，那时候的你和现在简直判若两人呢。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我权当你是在评价我做饭的手艺而不是其他事了。</p>
+            <p>……其实，如果你想吃的话，我可以给你做的。我现在也算是会做饭了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>真的吗！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>每天？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……我尽量。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好耶！</p>
+            <p>如果可以的话，我也想让结月尝尝我的手艺呢。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯……也许回去了你就能给我做了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>哈哈……说的也，是呢。</p>
+            <p>先不说这个了。结月，你的过去是什么样的呢？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>肿么秃然说这个？</p>
+          </div>
+          <div class="action-desc">[结月咽下了嘴里的牛排]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>就是，想了解结月你的过去吧。</p>
+            <p>有没有什么有趣的故事什么的？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我上大学的时候旁边的室友用Minecraft做笔记。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>关于你自己的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>关于我自己的事情啊……</p>
+            <p>嗯……好像也没有什么特别值得说的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>怎么会没有呢？每个人都有很多故事吧。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我又不是小说主人公。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>现在可说不准哦。你要知道我隶属超形上学部。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哈……</p>
+            <p>硬要说的话，大学时期的我其实挺不讨人喜欢的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>为什么？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我不太喜欢和别人合作。准确来说，是不喜欢把自己的事情交给别人。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>是因为不信任别人吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>差不多吧。</p>
+            <p>以前做项目的时候，经常有人把最麻烦的部分留给我。理由倒是很好听，什么「结月最擅长这个」「交给你就放心了」。</p>
+            <p>一开始我还觉得挺高兴的。</p>
+            <p>后来就发现，他们只是不想自己做而已。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>所以后来你就习惯一个人完成所有事情了？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯。至少自己做错了，知道应该从哪里找原因。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>这样啊。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不过现在想想，也不完全是因为这个。</p>
+            <p>只是觉得，和别人解释自己的想法有时候比自己动手还麻烦。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>这倒是很符合你的风格。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>喂。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>不过，现在不是挺好的吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>什么？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你现在不是正在和我一起研究HRPD吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+            <p>那是因为你的专业知识有用。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>哦——只是因为我有用啊。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不然呢？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>没什么。能够帮上结月的忙，我就很开心了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>吃饭的时候不要说话……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好哦。</p>
+          </div>
+          <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月，你那边的风景怎么样？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>一片黑，但是也能看见几个中子星和脉冲星发出来的亮光。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>听上去很像光污染严重地区晚上的星空。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你呢，那边怎么样？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>和你……一样的。</p>
+            <p>我们现在是否在看同一片星空呢？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>兴许是吧。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那太好了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>（哈欠），现在想来，正常的星空真的很好看呢。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>是呀……</p>
+            <p>……</p>
+            <p>结月。</p>
+            <p>结月？</p>
+          </div>
+          <div class="action-desc">[结月躺在床上，发出均匀的呼吸声，眼睛闭着。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>睡着了？</p>
+            <p>看来是太累了啊。</p>
+            <p>那……</p>
+            <p>晚安，我的结月。</p>
+          </div>
+          <div class="action-desc">[通讯结束]</div>
+        </div>
+      </div>
+
+      <!-- 块 15：视频记录 8 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5Lik5Lq655qE55Sf5pel</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-015</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">通讯记录：104280821</p>
+          </div>
+          <div class="action-desc">[结月坐在书桌旁，通讯器响了起来，结月拿起。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>早上好！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>早安。今天怎么这么早就打通讯来了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>哼哼，告诉你一件事哦。</p>
+            <p>按照空间站的日期算，今天是我的生日！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不会吧。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>什么“不会吧”？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>今天也是我的生日。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>哦——同月同日出生，那难不成，时间也一样？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>谁会记那种东西啊。</p>
+            <p>而且我已经知道你为什么向我提生日了。</p>
+            <p>是不是想让我给你做蛋糕？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>猜对啦——但是没有奖励。</p>
+            <p>我还以为你会猜我会要礼物什么的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>这个我也有想到，但是以我和你的相处经验来看，你似乎很喜欢吃。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>喂喂怎么说话的，什么叫我很喜欢吃啊。</p>
+            <p>算了算了，快去厨房，我教你蛋糕怎么做。</p>
+          </div>
+          <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">文本通讯：晴空.AIC</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>晴空。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>什么事，维尔女士？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>空间站里有没有布料啊，针线什么的，给我弄一点能用的。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>好的，您要给结月女士做礼物吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>记得瞒着她哦，嘘。最后还要你来送呢。</p>
+          </div>
+          <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>呼，忙了一上午终于忙好了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月原来越熟练了呢，这样下去厨艺很快就要超过我了哦？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>都没对比过就不要谈超越了，你想吃多少？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>对半切就好啦。</p>
+          </div>
+          <div class="action-desc">[结月拿起菜刀，沿着中线将蛋糕切开。然后将一半装进了餐盒里。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>晴空，把这个送过去。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>好的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我说，生日总要有吹蜡烛和许愿环节吧。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>好吧，晴空，再找几支小蜡烛来。</p>
+          </div>
+          <div class="action-desc">[片刻后，晴空带着蜡烛回来了。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>我也给维尔小姐分了几根，她也想许愿。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>快快，我给你唱生日歌。</p>
+          </div>
+          <div class="action-desc">[结月把蜡烛插在剩下的一半蛋糕里，然后挨个点燃。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那我要开始唱喽。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>开始吧。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>祝你生日快乐 ~ 祝你生日快乐 ~</p>
+          </div>
+          <div class="action-desc">[结月闭眼，双手紧握着，片刻后，莉奥拉停止唱歌，结月睁开眼，把所有的蜡烛都吹灭。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>许的是什么愿啊？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>希望我们可以成功回去。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>噢 ~</p>
+            <p>接下来到我了，结月快给我唱歌。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>唱的难听别怪我。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好了好了开始唱吧。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>祝你生日快乐 ~ ……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>呼——</p>
+            <p>好了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你许了什么愿望？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯……希望能和结月你一起回去！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>莉奥拉，蛋糕好吃吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯。</p>
+            <p>真希望还能一起过下次的生日啊……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>希望那个时候我们已经回去了，我可不想在这里再过一个生日了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……一定会的。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 不在 div 块中的内容 -->
+      <div class="plain-content" data-anim>
+        <p class="no-indent">莉奥拉挂断通讯器，然后轻轻将它放在了桌上。随即，她抬头看向飞船的舷窗。</p>
+        <p class="no-indent">“太黑了。”</p>
+        <p class="no-indent">令人窒息的黑暗。</p>
+        <p class="no-indent">她不再看着窗外，而是转头看向墙壁，那道墙壁上有相当多的图案。每个图图案由四道竖线和一道横线。</p>
+        <p class="no-indent">莉奥拉拿起笔，在末尾的四道竖线上补上一条横线。</p>
+        <p class="no-indent">“估计准确的话，这就是最后五十天了吧。”</p>
+      </div>
+
+      <!-- 块 16：视频记录 9 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/56S854mp</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-016</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">通讯记录：105011536</p>
+          </div>
+          <div class="action-desc">[画面中，结月的研究室里，一只黑色的毛绒物体正放在桌面上。它有两只三角形的耳朵，一只向左歪着，另一只则几乎贴在脑袋上。两颗纽扣眼睛的位置并不对称，身体圆滚滚的，身后还拖着一条形状不太自然的尾巴。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>怎么样？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+            <p>这是猫？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>当然是猫！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你确定？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>非常确定！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>可是它看起来……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>看起来怎么了？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你是不是没见过猫这种生物？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>喂！</p>
+            <p>你先看看耳朵！这不是猫耳朵吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>一只朝上，一只朝下？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那是因为缝的时候不小心歪了一点！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那眼睛呢？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>也不小心歪了一点……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>尾巴为什么长在侧面？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那是缝反了！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你不要再检查了！</p>
+            <p>这可是我辛辛苦苦做了好几天的生日礼物！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>生日礼物？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>对呀。虽然晚了几天，不过还是生日礼物！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>看出来了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>这是什么评价啊！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>没有，我只是觉得……</p>
+          </div>
+          <div class="action-desc">[结月伸手拿起了桌上的玩偶，用手指轻轻按了按它的肚子。柔软的填充物向内凹陷，随后慢慢恢复了原状。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>还挺软的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那当然。</p>
+            <p>之前不是听你说过，空间站里没有玩偶，只能抱着枕头睡觉吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你还记得啊。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>当然记得。</p>
+          </div>
+          <div class="action-desc">[结月又捏了捏玩偶的耳朵，随后将它抱在怀里。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>怎么样，喜欢吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>虽然形状上存在一些值得商榷的地方，但柔软程度还不错。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那给它起个名字怎么样？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>猫。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>什么叫猫啊！？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>因为它是猫。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……算了，你爱怎么办就怎么办吧。</p>
+            <p>对了，生日快乐，结月！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……谢谢。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 17：不完整记录 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/6L+H5b6A</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-017</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">@?!/%&=!+</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p class="no-indent">“结月博士。”</p>
+            <p class="no-indent">研究员走了过来，叫了声我的名字，我随机将视线从电脑屏幕上转移到他身上。</p>
+            <p class="no-indent">研究员递过来一个文件夹，“审核一下这些提案，然后在系统里判定通过还是拒绝。”</p>
+            <p class="no-indent">“好的。”我回答到。</p>
+            <p class="no-indent">那名研究员坐回了自己的位置上，我关掉电脑上的设计软件，打开了被放在桌子上的文件夹。</p>
+            <p class="no-indent">《关于使用电磁暴作为空间站被动防御系统的设计》</p>
+            <p class="no-indent">想电自己就直说。不通过。</p>
+            <p class="no-indent">《方舟环设计提案其一：Dr.Carbon Dioxide》</p>
+            <p class="no-indent">嗯……看起来还蛮不错的……运行设计，材料要求……武器系统？</p>
+            <p class="no-indent">什么叫你的武器系统只有两把12.7mm机枪？</p>
+            <p class="no-indent">我记得方舟环是需要承担防御功能的复合型空间站吧？</p>
+            <p class="no-indent">让我看看理由……为了防止人工智能叛乱？</p>
+            <p class="no-indent">这不应该是AIAD才要担心的事情吗？</p>
+            <p class="no-indent">我揉了揉太阳穴，把这封文件放到一边，正准备继续阅读下一篇时，电脑响起了提示音。</p>
+            <p class="no-indent">“项目主管发来的……”我点开消息通知，内容很简单，下午有一场HRPD的实验需要到场检查。我回了个收到，看了眼电脑的时间，11点47分。该吃午饭了。</p>
+            <p class="no-indent">我起身离开办公室。走廊里，有堆人正在围着一个有着耀眼金发的女孩交谈。经过的时候我从人群的空隙里瞥了眼，看见工牌上的部门标识是超形上学部。</p>
+            <p class="no-indent">超形上学部？感觉我最近经常看见超形上学部的人出现在工程部。是有什么合作项目吗？</p>
+            <p class="no-indent">算了，反正暂时不关我事。</p>
+            <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+            <p class="no-indent">实验开始前，我又在楼梯间看到了那个金发女孩，只不过这次她似乎在找什么东西。</p>
+            <p class="no-indent">“唔唔……我的工牌哪去了呢……不会不小心遭遇什么异常了吧……”</p>
+            <p class="no-indent">片刻后，她的视线从地面抬起来，看向了我。</p>
+            <p class="no-indent">“神宫寺小姐，你有看见我的工牌吗？”</p>
+            <p class="no-indent">她怎么知道我的名字的？我的工牌还放在兜里。不过我也没有多想，也许是别人在什么时候恰好记住了我。</p>
+            <p class="no-indent">“没有。”</p>
+            <p class="no-indent">“只能去补办了吗……”</p>
+            <p class="no-indent">她看起来有些低沉的走开了。</p>
+            <p class="no-indent">我没把这件事情放在心上。继续快步走向了实验室。</p>
+            <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+            <p class="no-indent">“HRPD的误启动确实只是一场意外。这是工程部的调查组提供的信息。”</p>
+            <p class="no-indent">唐默然将一个文件夹递给了我。</p>
+            <p class="no-indent">“工程部说，误启动的HRPD不知道会把神宫寺结月送到什么时候，可能是明天，也可能是宇宙毁灭前。”</p>
+            <p class="no-indent">我随意地翻了翻文件，然后烦躁地将它推到一边。</p>
+            <p class="no-indent">“话说，Moirai系统怎么样？”</p>
+            <p class="no-indent">“O5在看到项目提案后批准了，但是鉴于这个项目在功能上与<a href="https://scp-wiki-cn.wikidot.com/scp-cn-1109" target="_blank" class="link-gradient">朗基努斯计划</a>有根本差别，因此只有一部分技术能通用。剩余的几乎要从零开始，难度很大。”</p>
+            <p class="no-indent">“不过目前克洛托部分已经初具雏形了，HRPD的技术确实有很大帮助，你是怎么看出来的，莉奥拉？”</p>
+            <p class="no-indent">“直觉。”我用食指点了点太阳穴。</p>
+            <p class="no-indent">“呃……”唐默然摆出一副无语的表情。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 18：视频记录 10 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/77yB77yf5ZOy5a2m77yB77yf</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-018</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">通讯记录：105102014</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你觉得孤独是什么？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>怎么突然问这种问题？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好奇嘛。</p>
+          </div>
+          <div class="action-desc">[结月放下手中的工具，稍微思考了一下。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>大概就是一个人待着吧。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>可是一个人待着不一定会孤独吧？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那你觉得是什么？</p>
+          </div>
+          <div class="action-desc">[通讯器另一头安静了一会儿。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我也不知道。（笑）</p>
+            <p>不过，我觉得一个人待着和孤独好像不是同一回事。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>有什么区别吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>比如说，你一个人在研究室里工作的时候，会觉得孤独吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不会。至少以前不会。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那我好像和你不太一样。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哪里不一样？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我这里确实只有我一个人。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你不是有我吗？</p>
+          </div>
+          <div class="action-desc">[话刚出口，结月便停顿了一下。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>哈哈……是啊。</p>
+            <p>所以我才觉得奇怪。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>奇怪什么？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>明明每天都有人陪我聊天，明明我已经不是一个人了，可有时候通讯结束以后，我还是会觉得很孤独。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我以前觉得，只要有一个人愿意听我讲话就好了。可是后来才发现，不是这样的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那是什么样的？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>就像现在。你可以听见我的声音，我也可以听见你的声音。但我们还是没办法坐在一起。</p>
+            <p>我想，可能是因为这样吧。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>不过，这样也挺好的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>哪里好了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>至少我现在有一个人，可以告诉她今天发生了什么。</p>
+          </div>
+          <div class="action-desc">[结月低头看着桌面。过了一会儿，她重新看向通讯器。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你今天发生什么了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>诶？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不是说要告诉我吗？</p>
+          </div>
+          <div class="action-desc">[通讯器安静了一会，随后传来一阵轻轻的笑声。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 19：视频记录 11 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5aSx6LSl</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-019</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="doc-text">
+            <p class="no-indent highlight-dim">通讯记录：106011027</p>
+          </div>
+          <div class="action-desc">[画面中是HRPD研究室。中央控制台前方的观察屏幕上显示着一组正在不断变化的数据。结月坐在操作台前，面前摆放着几张已经写满公式的草稿纸。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>校准完成，传输端与接收端的相位差已经被限制在预设范围内。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>莉奥拉，你那边准备好了吗。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>早就准备好了！随时可以开始！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>别这么兴奋，这次只是一个很小的实验。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我知道呀。</p>
+            <p>不过我们忙活了这么久，总算要看到结果了嘛。</p>
+          </div>
+          <div class="action-desc">[结月检查了一遍操作面板，伸手将一旁的通讯器拿调整到更方便的位置。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那么，开始吧。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>正在建立传输通道。</p>
+            <p>记忆压缩完成。</p>
+            <p>快子化处理完成。</p>
+            <p>HRPD启动。</p>
+          </div>
+          <div class="action-desc">[控制台上的指示灯逐一亮起，屏幕上的数据迅速滚动。几秒后，传输进度停止。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>传输结束。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>接收端呢？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>正在进行解压与读取。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>怎么样？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>晴空？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>读取完成。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>成功了？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>不能确定。</p>
+          </div>
+          <div class="action-desc">[显示屏上出现了一段由接收端重构出的记忆片段。画面模糊，声音断断续续。原本连续的感官信息被切割成数个片段，彼此之间缺少明确的联系。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>这就是……传输过去的记忆？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>是的。接收端确实收到了相应的数据，但其信息结构存在严重缺失。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>缺失多少？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>有大约40%信息无法正确解码。其余部分也存在不同程度的错位。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……哈。</p>
+            <p>至少传过去了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>什么？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>虽然信息不完整，但是接收端确实重构出了记忆。也就是说，我们的方向没错，只是传输过程还不够稳定。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>女士，我必须提醒您，目前的实验结果并不足以支持这一结论。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我知道。</p>
+            <p>快子的信息传递本身就有很多问题。我们原本就没指望一次成功。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>只要解决信息稳定性的问题，再对编码和解压过程进行调整，说不定就能实现完整传输。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>但是，神宫寺女士，还有一个问题。</p>
+            <p>而且，这也是您一开始就应该考虑的问题。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>说。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>目前的实验只证明了记忆信息可以通过HRPD进行传递，并不能证明记忆主体能够一并完成转移。</p>
+            <p>换言之，即使接收端成功重构了全部记忆，也不能证明抵达那边的就是原本的您。</p>
+            <p>这就像一艘特修斯之船。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>更严重的是，如果这种信息丢失发生在一个完整的人类意识结构上，可能会导致无法逆转的认知损伤。</p>
+            <p>我不建议在现阶段进行人体实验。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我说过要进行人体实验了吗？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>没有。但根据您的研究计划，我认为有必要提前提醒。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>好了，我知道了。</p>
+          </div>
+          <div class="action-desc">[结月在显示屏上打开实验数据。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>莉奥拉，刚才的结果你也看见了。我们还需要再做几次实验。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我先把异常数据整理出来，明天重新设计传输方案。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>怎么了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你不觉得很奇怪吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>什么？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>如果有一天，我们真的成功把一个人的记忆全部传输过去了，那接收端的那个人，究竟算不算原来的那个人呢？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>假如她拥有你所有的记忆，知道你经历过的所有事情，也记得我们之间发生过的所有对话。</p>
+            <p>那么，她会认为自己是神宫寺结月吗？</p>
+            <p>当你真的成功了，那你的意识到底在哪里呢？</p>
+            <p>证明一个人意识存在的，是记忆，还是经验呢？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>唉……</p>
+            <p>我大学可没选过哲学课。</p>
+            <p>只要她还记得自己是谁，那不就够了吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>可是……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>而且你不是也看见了吗？这次至少已经成功传输了部分信息。</p>
+            <p>只要继续改进，我们一定能够解决这个问题。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>今天先到这里吧。你已经连续工作很久了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我还可以再检查一遍数据。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>明天也可以检查。机器不会因为你睡一觉就跑掉的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……好吧。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>晚安，结月。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>晚安。</p>
+          </div>
+          <div class="action-desc">[通讯结束]</div>
+        </div>
+      </div>
+
+      <!-- 块 20：视频记录 12 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5aSx6LSl</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-020</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>传输结束。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>接收端呢？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>没有收到目标对象。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>相位差呢？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>校准结果正常。问题不在相位差。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那问题在哪里？</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>目标参考系不存在可用的反向映射。当前时间参考系无法通过HRPD抵达您指定的过去时点。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>再试一次。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>女士，重复实验不会改变这一结果。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我说，再试一次。</p>
+          </div>
+          <div class="action-desc">[晴空没有立刻回答。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>……正在重新建立通道。</p>
+          </div>
+          <div class="action-desc">[第二次启动。控制台亮起，几秒后，所有指示灯同时熄灭。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>实验失败。反向映射仍未建立。主相位发生器已进入保护状态，暂时无法再次启动。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>神宫寺女士，我很抱歉。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>别道歉。你又没有做错什么。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>那么，您接下来打算怎么办？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我不知道。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 21：音频记录 5 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5aSx6LSl</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-021</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">音频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[结月坐在研究室里。桌上的草稿纸被整理成一叠，通讯器忽然亮起。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>你真的很想回去吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>当然。</p>
+            <p>这里除了你和晴空，连一个能正常说话的人都没有。我可不想在这种地方过一辈子。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>这样啊。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>而且，我还想看看我原来的研究室。还有以前认识的人。</p>
+            <p>还有……</p>
+          </div>
+          <div class="action-desc">[结月停顿了一下。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>算了，没什么。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯。</p>
+          </div>
+          <div class="action-desc">[通讯器那边传来一阵细微的响动。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>怎么又叫我？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>如果，我是说如果，有另外一条路呢？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>什么路？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>一条不需要你继续改造HRPD，也能离开这里的路。</p>
+          </div>
+          <div class="action-desc">[结月停下手中的动作。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你说什么？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我应该之前和你说过，我是因为在测试超形上学部内制造的一个项目。它用了些和HRPD同源的技术，事故发生后才把我也送到这里吧？</p>
+            <p>不知道你还记不记得，有段时间工程部里天天都有超形上学部的人。</p>
+            <p>而且那个时候我还遇见过你呢。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>啊……</p>
+            <p>那个见面就叫我名字的丢工牌的金发女生？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>对。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>所以你当时是怎么知道我名字的？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>之前第一眼看到你觉得你好看就多看了几眼。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……有点无语。</p>
+            <p>说回来，你指的那个项目到底是什么东西。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>Moirai。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>没听过。具体干啥的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>抱歉，我接种了模因，说出来会心脏麻痹死亡呢 ~</p>
+            <p>不过，我能保证，它能连同肉身一起把你送回去。这是原设计案里就可以实现的功能。</p>
+            <p>而且，我知道它在哪里。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你怎么会知道具体位置？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我可是它的制造者之一。而且，Moirai是固定设施。</p>
+            <p>但，我也不确定它现在还在不在，只能先确认坐标，再想办法过去。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那你之前为什么不说？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>Moirai的启动需要消耗非常巨大的能源。如果启动失败的话就几乎没有下次了。</p>
+            <p>但是以目前的视角来看，HRPD接下来需要的时间会很长，所以我准备告诉你一个可能时间花费更短的方法。</p>
+            <p>结月，你已经做得很好了。</p>
+            <p>真的。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……</p>
+            <p>把你能告诉我的事情都告诉我。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 22：视频记录 13 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5Ye65Y+R</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-022</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="action-desc">[空间站的停泊舱内，结月正站在一艘小型飞船的舱门前。晴空悬停在她身旁，正在进行最后的检查。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>我们很幸运。在仙女座与银河系合并之后，太阳系的位置离我们相当近。预计只需要当前时间尺度下的十二天就能到达。</p>
+            <p>所有系统检查完成，推进系统正常，导航系统正常，生命维持系统正常。</p>
+            <p>神宫寺女士，您可以准备出发了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>知道了。</p>
+            <p>太阳系啊……不知道变成什么样了。</p>
+          </div>
+          <div class="action-desc">[结月将手中的玩偶猫放进座椅旁边的储物格，随后又将它拿了出来。]</div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>女士？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>没什么。</p>
+            <p>还是放在旁边吧。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>您担心它受到损坏？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>这是莉奥拉送的东西，当然要好好保管。</p>
+          </div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>明白了。</p>
+          </div>
+          <div class="action-desc">[结月坐进驾驶座，检查了一遍操作界面，随后接通了通讯。]</div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>早上好，结月！</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>早安。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>怎么样，准备出发了吗？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>嗯，晴空已经检查完毕了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>那就好！一路顺风哦。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你那边也准备好了吧？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>当然。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>那就说好了，十二天后见。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……</p>
+            <p>嗯，十二天后见。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>你怎么了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>没什么，只是觉得有点不真实，我们现在居然真的要见面了。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>这不是好事吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>是呀。</p>
+            <p>……非常好的事情。</p>
+          </div>
+          <div class="action-desc">[结月轻轻笑了一声。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>好了，我要出发了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>嗯。</p>
+            <p>结月。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>怎么了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>到了那边之后，记得先检查周围环境。安全最重要。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>知道了。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>还有，记得好好吃饭。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>我又不是小孩子。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我知道呀。</p>
+            <p>只是有点不放心。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>……你也是。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>好哦。</p>
+          </div>
+          <div class="action-desc">[通讯结束]</div>
+          <div class="action-desc">[结月低下头，看了一眼放在身旁的玩偶猫。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>十二天……</p>
+            <p>感觉也不算很长嘛。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 块 23：视频记录 14 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5Z2m55m9</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-023</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>女士，我们已经抵达太阳系柯伊伯带外围。</p>
+            <p>我将执行对星系的广域扫描，以确认具体的目标位置。</p>
+            <p>完成，初步怀疑对象：579个。根据维尔女士提供的信息，我会进行更进一步筛选。完成，怀疑对象降低至3个。接下来执行高精度扫描。</p>
+            <p>确认目标对象，可能性98.27%。已经自动规划导航。</p>
+            <p>跃迁开始。</p>
+            <p>女士，我们到了。</p>
+          </div>
+          <div class="hr" style="height:1px;background:#333;margin:30px 0;"></div>
+          <div class="section-title">晴空.AIC</div>
+          <div class="doc-text">
+            <p>稍等，女士，这个空间站目前也处于现状固化中，我需要一些时间来解决。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>好。</p>
+          </div>
+          <div class="action-desc">[结月拿起通讯器，打给了莉奥拉。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>喂，莉奥拉？</p>
+            <p>我到了，你呢？</p>
+            <p>你还有多久？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>莉奥拉？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……</p>
+            <p>对不起……</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月，我没办法和你一起回去了。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 不在 div 块中的内容：对话高潮与心理描写 -->
+      <div class="plain-content" data-anim>
+        <p class="no-indent">“没办法一起回去”是什么意思？</p>
+        <p class="no-indent">还未等我思考，莉奥拉的下一句话就紧接而来。</p>
+        <p class="no-indent">“具体原因有点复杂，一时半会说不清楚啦。”通讯里，莉奥拉的声音依旧如阳光般温暖。不过我却在那其中感受到了其他的情绪。</p>
+        <p class="no-indent">那是人在万念俱灰时所散发的情绪。</p>
+        <p class="no-indent">为什么？</p>
+        <p class="no-indent">莉奥拉出了什么事吗？</p>
+        <p class="no-indent">为什么她不和我说？</p>
+        <p class="no-indent">“莉奥拉，你怎么了。”</p>
+        <p class="no-indent">我不敢相信那是我的声音，我向莉奥拉说话的声音。它听起来没有半点起伏，像是某种诡异的合成语音。</p>
+        <p class="no-indent">“结月，如果我说了，你还会走吗。”</p>
+        <p class="no-indent">“别拿这个来要挟我。”</p>
+        <p class="no-indent">通讯器那边似乎好久都没再传来声音。</p>
+        <p class="no-indent">然后，终于，一阵叹息声传来。然后，一个陌生的，却又带着熟悉声音的话语传来。</p>
+        
+        <div class="spacer-lg"></div>
+        
+        <p class="no-indent quote">“结月，我要死了。”</p>
+
+        <div class="spacer-lg"></div>
+
+        <p class="no-indent">要死了？</p>
+        <p class="no-indent">什么意思？</p>
+        <p class="no-indent">我下意识地屏住呼吸，握着通讯器的手指不自觉地收紧。</p>
+        <p class="no-indent">“抱歉，现在才告诉你。”</p>
+        <p class="no-indent">“很高兴和你相遇，结月。以后，可以不用再为我做什么了。”</p>
+        <p class="no-indent">“我不要。”</p>
+        <p class="no-indent">几乎没有经过思考，我便脱口而出。</p>
+        <p class="no-indent">“什么？”</p>
+        <p class="no-indent">“我说我不要！”</p>
+        <p class="no-indent">我提高了声音。</p>
+        <p class="no-indent">“为什么？从刚才开始你就一直在自说自话！什么‘对不起’，‘我要死了’，还有什么‘以后不用再为你做什么了’……你连我的理由都没听过吧？”</p>
+        <p class="no-indent">我停顿了一下。</p>
+        <p class="no-indent">“我以为我们是……要好的人。”</p>
+        <p class="no-indent">说到最后，我的声音反而低了下来。</p>
+        <p class="no-indent">“结果呢？你就突然告诉我你不能走了，要死了，还不说任何理由，谁听得懂啊！？”</p>
+        <p class="no-indent">“结月……”</p>
+        <p class="no-indent">“你先回答我。”</p>
+        <p class="no-indent">我打断了她。</p>
+        <p class="no-indent">“你现在在哪里？”</p>
+        <p class="no-indent">“我在飞船上。”</p>
+        <p class="no-indent">“具体位置。”</p>
+        <p class="no-indent">“……”</p>
+        <p class="no-indent">“莉奥拉，我问你具体位置。”</p>
+        <p class="no-indent">“没用的。”</p>
+        <p class="no-indent">“有没有用是我来判断。”</p>
+        <p class="no-indent">“我的飞船被黑洞捕获了。”</p>
+        <p class="no-indent">她终于开口。</p>
+        <p class="no-indent">“事故发生的时候，飞船的推进系统受到了严重损坏。之后我尝试过好几次脱离，但是都失败了。联系到你们之后，我就询问过晴空，提供了数据。那个时候，我就已经几乎是贴着黑洞的事件视界公转了。”</p>
+        <p class="no-indent">“就像一个即将要掉进洞里的小球，除非将洞堵上，否则没有任何解决方法。”</p>
+        <p class="no-indent">“今天，就是我掉进黑洞前的最后一天了。”</p>
+        <p class="no-indent">我张了张嘴，却发现自己不知道该说什么。</p>
+        <p class="no-indent">有那么一瞬间，我甚至产生了一种荒唐的错觉：只要我不回答，只要这段通讯一直持续下去，那么刚才的话就没有真正发生过。</p>
+        <p class="no-indent">“对不起。我该早点告诉你的。”</p>
+        <p class="no-indent">“又是对不起，你难道就只会说这个吗！？”</p>
+        <p class="no-indent">我讨厌这句话。</p>
+        <p class="no-indent">真的很讨厌。</p>
+        <p class="no-indent">为什么她总是要对我说对不起？</p>
+        <p class="no-indent">为什么明明是她要死了，却还要向我道歉？</p>
+        <p class="no-indent">为什么她可以这样平静地说出这些事情，仿佛自己只是即将结束一项普通的工作？</p>
+        <p class="no-indent">“我不需要你道歉。”</p>
+        <p class="no-indent">“如果你知道，就应该在一开始告诉我！至少让我自己决定要不要来，至少让我知道我到底在做什么！”</p>
+        <p class="no-indent">“可是，如果我告诉你了，你会来吗？”</p>
+        <p class="no-indent">她的声音很轻。</p>
+        <p class="no-indent">“……”</p>
+        <p class="no-indent">我没有回答。</p>
+        <p class="no-indent">“你看。”</p>
+        <p class="no-indent">她又笑了笑。</p>
+        <p class="no-indent">“你会来的。”</p>
+        <p class="no-indent">“所以呢？！”</p>
+        <p class="no-indent">“所以我才没有说呀。”</p>
+        <p class="no-indent">她的语气里带着一点无奈。</p>
+        <p class="no-indent">“结月，我不想让你去做一件没有意义的事情。虽然我想过，在一开始的时候就告诉你我的处境。但是当晴空把确切的数据交给我的时候，我就打消这个念头了。”</p>
+        <p class="no-indent">“因为，我不想让你眼睁睁看着我死去。”</p>
+        <p class="no-indent">“那你还——”</p>
+        <p class="no-indent">“可是，我也想见你啊。”</p>
+        <p class="no-indent">我怔住了。</p>
+        <p class="no-indent">“……”</p>
+        <p class="no-indent">“我也想看看你真正站在我面前的时候，会是什么样子。”</p>
+        <p class="no-indent">她的声音忽然有些发涩，但很快又被她压了下去。</p>
+        <p class="no-indent">“我想过很多次。比如你到了以后，我应该说些什么；比如我们终于可以一起吃一顿饭了，我要做些什么给你吃；还有那个猫玩偶……我还想着等见面的时候，要不要再给它修一修，把尾巴缝到该在的位置。”</p>
+        <p class="no-indent">“……”</p>
+        <p class="no-indent">“你看，我也不是完全没有期待嘛。”</p>
+        <p class="no-indent">她说到最后，甚至有些不好意思似的笑了起来。</p>
+        <p class="no-indent">我却一点都笑不出来。</p>
+        <p class="no-indent">“所以，你就让我过来？”</p>
+        <p class="no-indent">“嗯。”</p>
+        <p class="no-indent">“让我以为我们能一起回去？”</p>
+        <p class="no-indent">“……”</p>
+        <p class="no-indent">“你明明知道，我一路上都在想什么。”</p>
+        <p class="no-indent">我看了一眼放在座椅旁边的储物格。</p>
+        <p class="no-indent">那只黑色的猫玩偶安静地躺在那里，两只耳朵依旧歪歪扭扭的。</p>
+        <p class="no-indent">“从离开空间站开始，我就在想，十二天以后会是什么样子。”</p>
+        <p class="no-indent">我慢慢说道。</p>
+        <p class="no-indent">“结月。”</p>
+        <p class="no-indent">“不要说了。”</p>
+        <p class="no-indent">“我——”</p>
+        <p class="no-indent">“不要再说那些话了。”</p>
+        <p class="no-indent">我低下头，把额头抵在冰冷的控制台边缘。</p>
+        <p class="no-indent">“你说你想见我。”</p>
+        <p class="no-indent">“……”</p>
+        <p class="no-indent">“那为什么不等我？”</p>
+        <p class="no-indent">她没有回答。</p>
+        <p class="no-indent">“你明明都等了这么久了。”</p>
+        <p class="no-indent">“结月……”</p>
+        <p class="no-indent">“再多等一天不行吗？”</p>
+        <p class="no-indent">我的声音越来越低。</p>
+        <p class="no-indent">“哪怕只有一天……”</p>
+        <p class="no-indent">“我也想。”</p>
+        <p class="no-indent">“我真的很想。”</p>
+        <p class="no-indent">那句话像是某种迟来的回答。</p>
+        <p class="no-indent">我突然不知道该怎么继续了。</p>
+        <p class="no-indent">她不是不想见我。</p>
+        <p class="no-indent">她不是不想和我一起回去。</p>
+        <p class="no-indent">她只是……</p>
+        <p class="no-indent">“我也很想和你一起回去。”</p>
+        <p class="no-indent">她笑了一下。</p>
+        <p class="no-indent">“我不是说过吗？等回去以后，我也要让你尝尝我的手艺。”</p>
+        <p class="no-indent">“那就去做啊。”</p>
+        <p class="no-indent">我几乎是立刻回答。</p>
+        <p class="no-indent">“我们现在就去想办法。”</p>
+        <p class="no-indent">“结月……”</p>
+        <p class="no-indent">“你把剩下的坐标和数据发给我。晴空还在这里，我也可以调用空间站的计算资源。说不定还有什么办法，哪怕我们——”</p>
+        <p class="no-indent">“没有办法了。”</p>
+        <p class="no-indent">她轻轻说道。</p>
+        <p class="no-indent">“抱歉，结月，我不太会撒谎。”</p>
+        <p class="no-indent">我想继续说些什么。</p>
+        <p class="no-indent">想告诉她我不想让她死，想告诉她我希望她能活着，想告诉她我还有很多事情想和她一起做。</p>
+        <p class="no-indent">可是这些话并不能改变任何事情。</p>
+        <p class="no-indent">我甚至不知道自己应该先做什么。</p>
+        <p class="no-indent">“莉奥拉。”</p>
+        <p class="no-indent">“嗯，我在。”</p>
+        <p class="no-indent">“我该怎么办？”</p>
+        <p class="no-indent">我听见自己的声音。</p>
+        <p class="no-indent">很陌生。</p>
+        <p class="no-indent">“我不知道。”</p>
+        <p class="no-indent">她这样回答。</p>
+        <p class="no-indent">我闭上眼睛。</p>
+        <p class="no-indent">不知道过了多久，晴空的声音从身后的控制台传来。</p>
+        <p class="no-indent">“神宫寺女士，空间站的固化解除进程已经完成了。”</p>
+        <p class="no-indent">“……我知道了。”</p>
+        <p class="no-indent">我回答，然后重新拿起通讯器。</p>
+        <p class="no-indent">“莉奥拉。”</p>
+        <p class="no-indent">“嗯？”</p>
+        <p class="no-indent">“不要挂断。”</p>
+        <p class="no-indent">“好。”</p>
+        <p class="no-indent">“就这样保持通讯。”</p>
+        <p class="no-indent">“好哦。”</p>
+        <p class="no-indent">我不知道接下来还能说些什么。</p>
+        <p class="no-indent">也不知道这段通讯还能持续多久。</p>
+        <p class="no-indent">我只是握着通讯器，听着另一端传来的呼吸声。</p>
+        <p class="no-indent">明明我们已经距离得这么近了。</p>
+        <p class="no-indent">明明只差最后一点。</p>
+        <p class="no-indent">一股莫名的情感从我心里升起。</p>
+        <p class="no-indent">那是某种很久以前就萌发的情感。</p>
+      </div>
+
+      <!-- 块 24：视频记录 15 -->
+      <div class="doc-container" data-anim>
+        <div class="grab-header">—— Atropos 抓取信息 ——</div>
+        <div class="doc-path-bar">file:///bin.moirai/……/atropos/5ZCv5Yqo</div>
+        <div class="doc-meta-grid">
+          <div class="meta-box">
+            <span class="meta-key">文件编号</span>
+            <span class="meta-val">UBS-024</span>
+          </div>
+          <div class="meta-box">
+            <span class="meta-key">文件类型</span>
+            <span class="meta-val">视频</span>
+          </div>
+        </div>
+        <div class="doc-content">
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>应该就是这里了。</p>
+          </div>
+          <div class="action-desc">[结月的面前是一扇与其他门都别无二致的气密门。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>门是锁的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>我知道密码。</p>
+          </div>
+          <div class="action-desc">[结月凑近密码盘，抬手正准备按莉奥拉的指示输入。指示灯却直接亮起了绿色。]</div>
+          <div class="section-title">门禁</div>
+          <div class="doc-text">
+            <p>身份验证已通过，欢迎，神宫寺博士。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>什么情况，怎么直接开了？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>别问我，我也不知道什么情况。</p>
+          </div>
+          <div class="action-desc">[结月走进门内，随后出现在画面中的是一架正在转动的五人高巨型纺车。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>这就是Moirai？一个超级大纺车？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>算是一部分。结月，控制室的门应该就在附近。</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>莉奥拉，纺车在转是正常的吗？</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>在转是——你说什么？克洛托在转？</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>如果你指的克洛托是这个纺车的话，对的。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>结月，克洛托在转就说明Moirai，至少是一部分，正在运行。</p>
+            <p>有两种可能：一，Moirai一直在这里运行，没有停止过。这在设计上是正常的，克洛托在启动后只有一小段时间需要输入能源，剩下的时间都只用“惯性”就能运行。二——</p>
+          </div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>不用你说也知道，有人比我们先来一步。</p>
+          </div>
+          <div class="section-title">莉奥拉·维尔</div>
+          <div class="doc-text">
+            <p>……注意安全，结月。</p>
+          </div>
+          <div class="action-desc">[结月在周围转了一圈，然后找到了另一个密码门。而这次门仍然直接对着结月亮起了绿灯。]</div>
+          <div class="section-title">神宫寺结月</div>
+          <div class="doc-text">
+            <p>真诡异。</p>
+          </div>
+          <div class="action-desc">[第二道门在她身后缓缓合拢。控制室比外面的大厅更暗，只有中央控制台亮着一圈微弱的白光。]</div>
+        </div>
+      </div>
+
+      <!-- 不在 div 块中的内容：Moirai 控制室 -->
+      <div class="plain-content" data-anim>
+        <p class="no-indent">我站在原地，等眼睛慢慢适应光线，才走向控制台。</p>
+        <p class="no-indent">上面没有常规的操作界面，只有三行不断刷新的状态信息：</p>
+        
+        <div class="spacer-sm"></div>
+        <p class="no-indent" style="font-family:monospace; color:#fff;">CLOTHO：RUNNING</p>
+        <p class="no-indent" style="font-family:monospace; color:#fff;">LACHESIS：LOCKED</p>
+        <p class="no-indent" style="font-family:monospace; color:#fff;">ATROPOS：STANDBY</p>
+        <div class="spacer-sm"></div>
+
+        <p class="no-indent">“克洛托在运行，阿特洛波斯待机……拉刻西斯被锁定了？”我把那几行字轻声念了出来。</p>
+        <p class="no-indent">“先别碰它。”莉奥拉的声音从通讯器里传来，“拉刻西斯那部分，我只在设计资料里见过。原型阶段并没有完成。”</p>
+        <p class="no-indent">“你不是参与了整个项目吗？”</p>
+        <p class="no-indent">“我参与的是克洛托原型，不是整个Moirai。很多东西在我离开之前，都还只是图纸。”</p>
+        <p class="no-indent">她说得很平静。我却忽然意识到，即使是莉奥拉，也有许多她不知道的事情。过去我总觉得，只要把问题交给她，我们就能一起找到答案。可现在，我们站在一台连她也无法完全理解的机器面前，谁都无法告诉对方接下来会发生什么。</p>
+        <p class="no-indent">我走到主控台前。屏幕亮起，一个简洁的权限验证界面浮现出来。</p>
+        <p class="no-indent">“女士，我正在尝试接入控制台。”晴空说。</p>
+        <p class="no-indent">屏幕闪烁了一下。</p>
+        
+        <div class="spacer-sm"></div>
+        <p class="no-indent" style="font-family:monospace; color:#ddd;">身份验证：通过</p>
+        <p class="no-indent" style="font-family:monospace; color:#ddd;">用户：神宫寺结月</p>
+        <p class="no-indent" style="font-family:monospace; color:#ddd;">权限来源：未知</p>
+        <p class="no-indent" style="font-family:monospace; color:#ddd;">登记时间：早于当前设备启动时间</p>
+        <div class="spacer-sm"></div>
+
+        <p class="no-indent">我怔住了。</p>
+        <p class="no-indent">“……我什么时候登记过？”</p>
+        <p class="no-indent">“我不知道。”莉奥拉回答得很快，随后又补了一句，“结月，我真的不知道。至少在我参与的项目资料里，没有这一条。”</p>
+        <p class="no-indent">“连你也不知道？”</p>
+        <p class="no-indent">“嗯。”</p>
+        <p class="no-indent">我盯着屏幕上自己的名字。那几个字安安静静地排列在那里，仿佛它们本来就应该出现在这里，仿佛这台机器早已认识我，而我只是迟到了很久才走到它面前。</p>
+        <p class="no-indent">我没有继续追问。眼下还有更重要的事情。</p>
+        <p class="no-indent">主控台侧面的屏幕亮起，显示出设备结构图。几个区域呈灰色，只有其中一处还在缓慢闪烁。</p>
+        <p class="no-indent">“检测到能源储备。”晴空说，“现有储备不足以恢复整个系统，但足以为一个独立组件提供一次启动所需的能源。”</p>
+        <p class="no-indent">“阿特洛波斯？”</p>
+        <p class="no-indent">“应该是。”莉奥拉的声音低了些，“原设计案里，阿特洛波斯负责完成最后的切断功能。我认为，它可以把目标从当前参考系中剥离，再送往已经设定好的参考系。”</p>
+        <p class="no-indent">“那目标参考系呢？”</p>
+        <p class="no-indent">通讯器那边安静了一瞬。</p>
+        <p class="no-indent">“我不知道。当时并没有完成过整套系统的实测。”</p>
+        <p class="no-indent">“也就是说，你不能保证它能把我送回2896年。”</p>
+        <p class="no-indent">“……不能。”</p>
+        <p class="no-indent">她没有用平时那种轻快的语气替自己找补，也没有说什么“一定没问题”。她只是把答案告诉了我。</p>
+        <p class="no-indent">我看着屏幕上那处闪烁的标记，忽然觉得有些疲惫。</p>
+        <p class="no-indent">从醒来到现在，我一直在寻找回去的办法。修复空间站，研究HRPD，和莉奥拉一起做实验；失败了就重新计算，找不到方向就换一种思路。每当我觉得自己快要撑不下去的时候，总还有下一件事可以做，总还有一个公式、一段数据、一次实验等着我去完成。</p>
+        <p class="no-indent">可现在，答案就在眼前，我却发现自己连它究竟会把我带去哪里都不知道。</p>
+        <p class="no-indent">“神宫寺女士。”晴空打断了我的思绪，“当前控制台无法读取完整目标坐标。启动后，设备可能无法返回待机状态。”</p>
+        <p class="no-indent">“我知道。”</p>
+        <p class="no-indent">“另外，当前系统只识别到一个迁移对象。我的计算节点不在可迁移范围内。”</p>
+        <p class="no-indent">我低头看向悬在一旁的晴空。它的圆形视觉传感器里，那一点蓝光仍旧平稳地亮着。</p>
+        <p class="no-indent">“所以你不能和我一起走。”</p>
+        <p class="no-indent">“是的。我会留在这里，继续维持站点记录。”</p>
+        <p class="no-indent">我一时不知道该说什么。</p>
+        <p class="no-indent">来到这里以后，晴空一直陪在我身边。它偶尔会说出一些让人无语的话，也经常给不出什么真正有用的建议，可它始终在这里。</p>
+        <p class="no-indent">我曾经以为，只要能够回去，其他事情都可以暂时放下。直到真的走到这一步，我才发现，所谓离开并不是把所有失去的东西都找回来。它只是意味着，我必须带着这些失去继续往前走。</p>
+        <p class="no-indent">“……谢谢你，晴空。”</p>
+        <p class="no-indent">“祝您好运，神宫寺女士。”</p>
+        <p class="no-indent">它仍旧用那种一贯平稳的语气回答我。</p>
+        <p class="no-indent">我重新看向通讯器。</p>
+        <p class="no-indent">“结月。”莉奥拉叫我。</p>
+        <p class="no-indent">“我在。”</p>
+        <p class="no-indent">“你已经到那里了。你可以走了。”</p>
+        <p class="no-indent">我听着她的声音，手指却没有动。</p>
+        <p class="no-indent">“你又在替我做决定。”</p>
+        <p class="no-indent">“这次不是。我只是……不想让你也被困在这里。”</p>
+        <p class="no-indent">“那你呢？”</p>
+        <p class="no-indent">“我会留在这里。”</p>
+        <p class="no-indent">她说得太轻了，轻得像是在谈论一件早就决定好的小事。</p>
+        <p class="no-indent">“你明明知道，我不会把这件事当成理所当然。”</p>
+        <p class="no-indent">“我知道。”</p>
+        <p class="no-indent">“那你还说得这么简单？”</p>
+        <p class="no-indent">“结月……”</p>
+        <p class="no-indent">我没有接话。</p>
+        <p class="no-indent">控制台的白光落在我的手背上。我看着自己的手，不知道该说些什么。</p>
+        <p class="no-indent">说什么好呢？似乎在这种情况下，我已经没有任何能说的话了。</p>
+        <p class="no-indent">“我不想一个人回去。”我说。</p>
+        <p class="no-indent">“我知道。”</p>
+        <p class="no-indent">“我也不想让你死。”</p>
+        <p class="no-indent">通讯器那边没有立刻传来回答。那短暂的沉默里，我听见了她很轻的呼吸声。</p>
+        <p class="no-indent">“那你告诉我，”我尽量让自己的声音保持平稳，“我到底应该怎么办？”</p>
+        <p class="no-indent">莉奥拉没有回答。</p>
+        <p class="no-indent">我原以为她会像以前那样，想办法把话题岔开，或者用一个玩笑把沉重的气氛推远一些。她总是这样。即使我做出来的饭菜糟糕得难以下咽，她也能找到夸奖的理由；即使实验结果一塌糊涂，她也会说下一次一定会更好；即使她自己已经很疲惫，也会在通讯结束前提醒我早点休息。</p>
+        <p class="no-indent">我曾经觉得，那只是她乐观的性格。</p>
+        <p class="no-indent">现在我才明白，她也许只是一直在努力让我不要担心。</p>
+        <p class="no-indent">“结月……”</p>
+        <p class="no-indent">她又叫了我一声。</p>
+        <p class="no-indent">这一次，她的声音终于不再像平时那样明亮。</p>
+        <p class="no-indent">“我不想死。”</p>
+        <p class="no-indent">我握紧了通讯器。</p>
+        <p class="no-indent">她的尾音在发抖。那些被她压了很久的情绪，终于从那道熟悉的声音里溢了出来。</p>
+        <p class="no-indent">“我还没有再见过你。我还没有和你一起吃饭，我明明已经等了这么久了……”</p>
+        <p class="no-indent">她停了一下，像是想把声音重新整理好，却没有成功。</p>
+        <p class="no-indent">“我也想过，等你到了以后，我要说些什么。想过要做什么给你吃，想过我们可以一起看星星。还有好多事情……我明明还有好多事情想和你一起做。”</p>
+        <p class="no-indent">我张了张嘴，却没有发出声音。</p>
+        <p class="no-indent">原来她也在期待。</p>
+        <p class="no-indent">可她的未来已经没有那么长了。</p>
+        <p class="no-indent">我忽然想起她在生日那天说，希望还能一起过下次生日。想起她说想让我尝尝她做的饭，想起那句轻轻的“晚安，我的结月”。那些话当时听起来都很平常，平常得像是只要我们愿意，就能一直这样说下去。</p>
+        <p class="no-indent">我一直以为，所谓以后，就是把今天没来得及做的事情留到明天。</p>
+        <p class="no-indent">可对莉奥拉来说，明天从来都不是一件能够理所当然拥有的东西。</p>
+        <p class="no-indent">“莉奥拉……”</p>
+        <p class="no-indent">我想说别害怕，想说我会想办法，想说我们一定还有机会。可这些话到了嘴边，我自己都无法相信。</p>
+        <p class="no-indent">我想告诉她，这不是难堪。她不需要为自己害怕死亡而道歉，也不需要为自己想活下去而感到抱歉。她只是想继续活着，只是想再见我一面，只是想把那些还没有完成的事情做完。</p>
+        <p class="no-indent">这些愿望明明都那么普通。</p>
+        <p class="no-indent">普通得让我无能为力。</p>
+        <p class="no-indent">“走吧，结月。”过了很久，她才再次开口，“抱歉在你面前露出这么难堪的一面。”</p>
+        <p class="no-indent">“不要道歉。”</p>
+        <p class="no-indent">我终于说出了这句话。</p>
+        <p class="no-indent">可她没有再接话。</p>
+        <p class="no-indent">我希望自己能像过去那样，只要把所有注意力都放到某个问题上，就可以暂时忘记其他事情。可是无论我怎样逼迫自己思考，眼前都只有那个无法改变的事实。</p>
+        <p class="no-indent">我救不了她。</p>
+        <p class="no-indent">我连她所在的地方都触碰不到。</p>
+        <p class="no-indent">我们明明已经离得这么近，却还是只能隔着一段通讯，听着彼此的声音。</p>
+        <p class="no-indent">我曾经讨厌把事情交给别人，讨厌依赖别人，也讨厌承认自己有做不到的事。可现在，我第一次如此强烈地希望，能有谁替我承担这一切，哪怕只有一瞬间也好。</p>
+        <p class="no-indent">但没有人能替我。</p>
+        <p class="no-indent">我只能自己做出选择。</p>
+        <p class="no-indent">我慢慢抬起头，看向启动面板。</p>
+        <p class="no-indent">“莉奥拉。”</p>
+        <p class="no-indent">“嗯，我在。”</p>
+        <p class="no-indent">我很想再听她说几句话。哪怕只是像平时一样，随便聊些无关紧要的事情；哪怕她又用那种故作轻快的语气叫我一声结月，也好。</p>
+        <p class="no-indent">可我知道，时间已经不允许我们继续这样了。</p>
+        <p class="no-indent">我闭上眼睛，按下启动键。</p>
+        <p class="no-indent">“阿特洛波斯组件启动。”</p>
+        <p class="no-indent">晴空的声音响起。</p>
+        <p class="no-indent">“目标识别完成。”</p>
+        <p class="no-indent">屏幕上的标记开始旋转，控制台的光线一点点增强。</p>
+        <p class="no-indent">“执行切断。”</p>
+        <p class="no-indent">Moirai启动了。</p>
+        <p class="no-indent">通讯器里，莉奥拉没有再说话。我仍能听见她的呼吸，轻而短，仿佛只要我仔细听，就还能把她留在这一端。</p>
+        <p class="no-indent">我忽然意识到，自己一直没有认真想过，等回去以后要怎么生活。</p>
+        <p class="no-indent">我只是在想，回去以后还有很多事情可以做；只是在想，终于能和她坐在同一张桌子前，终于能听见她不经过通讯器传来的声音，终于能把那些隔着屏幕说过的话变成真正发生在眼前的日常。</p>
+        <p class="no-indent">我以为那只是习惯。</p>
+        <p class="no-indent">是因为在这个世界上只剩下她一个能够与我交谈的人，所以我才会如此在意她；是因为孤独，所以才会期待每一次通讯；是因为我们一起研究、一起吃饭、一起度过了太多时间，所以才会舍不得分别。</p>
+        <p class="no-indent">可是现在，我终于明白了。</p>
+        <p class="no-indent">我想要的并不只是一个能够陪我说话的人。</p>
+        <p class="no-indent">我想要的是莉奥拉。</p>
+        <p class="no-indent">是那个会在我沮丧时陪我聊天、会记得我喜欢的东西、会因为一块蛋糕而开心得像个孩子的人。是那个即使自己已经害怕得快要撑不住了，也仍旧努力祝我一路顺风的人。</p>
+        <p class="no-indent">我喜欢她。</p>
+        <p class="no-indent">这份感情并不是在告别的这一刻才突然出现的。它早就藏在每一次通讯里，藏在我逐渐习惯的问候中，藏在我从不承认的期待里。只是直到再也没有机会把它说出口，我才终于看清它的模样。</p>
+        <p class="no-indent">“莉奥拉，我——”</p>
+        <p class="no-indent">我想把剩下的话说完。</p>
+        <p class="no-indent">喜欢你。</p>
+        <p class="no-indent">可我不知道她有没有听见。</p>
+</div>
+
+<div style="height: 50vh;"></div> 
+
+<!-- 局部黑白渐变过渡区 -->
+<div class="flash-section" id="white-trigger">
+  <p style="font-size:18px; letter-spacing:0.1em; margin-bottom: 140px;">刺眼的白光填满了视线的每一个角落。</p>
+  
+  <div class="inline-perturb" id="inline-perturb-target" style="font-size:20px; letter-spacing:0.1em; margin: 0;">
+    扰动率：<span id="perturb-number-anim" style="opacity:0; transition:opacity 0.5s;">1.048596%</span>
+  </div>
+  
+  <!-- 底部对称留白 -->
+  <div style="height: 140px;"></div> 
+</div>
+
+<div style="height: 50vh;"></div> 
+
+      <div class="plain-content" data-anim>
+        <p class="no-indent">我缓缓睁开双眼。映入眼帘的是许久未见的，碧蓝的天空。身下则是柔软的草地。</p>
+        <p class="no-indent">口袋里有什么东西震动了一下，我伸手拿，发现是在这些天链接我和莉奥拉的通讯器。此时，上面正显示着：“你有一封新邮件 - 来自莉奥拉·维尔”</p>
+      </div>
+
+      <!-- 结尾：不用 div -->
+      <div class="plain-content" data-anim style="margin-top: 40px;">
+        <div class="mail-content">
+          <p>亲爱的结月：</p>
+          <br>
+          <p>你好呀！</p>
+          <p>当你看到这条消息的时候，我大概已经不在了吧。</p>
+          <p>我很早就写好它了，叫晴空写了一个隐藏邮件的程序，然后在固定的时间后提醒你。</p>
+          <p>本来想写点东西给你的，但想了想，却又不知道该写什么。</p>
+          <p>不过最后还是决定想到什么就写什么。反正你读到它的时候，我也不能再修改了。</p>
+          <p>真抱歉，本来应该是要亲口告诉你这些话的，最后还是没敢说，只好写在邮件里了。</p>
+          <br>
+          <p>对不起，要你为我做了那么多事。</p>
+          <p>对不起，让你这么难过。</p>
+          <p>对不起，没能和你过下一个生日。</p>
+          <p>对不起，不能和你一起活下去了。</p>
+          <br>
+          <p>不过，自从遇见你以后，我每天都有很多话想讲给你听。</p>
+          <p>我曾经以为，只要能和你说上话就已经很好了。后来我想和你一起吃饭，想和你一起看星星，想在你睡着以前亲口说晚安。再后来，我开始贪心地想要一个又一个普通的明天。</p>
+          <br>
+          <p>谢谢你，这些日子，我过得很开心。</p>
+          <p>如果真的有下一次生日，希望你能吃到一块好吃的蛋糕。希望你能在一片有星星的天空下散步。希望那时候，你身边有很多愿意和你分享生活的人。</p>
+          <br>
+          <p>……还有最后一件事，我一直没和你说。</p>
+          
+          <div class="spacer-lg"></div>
+<p>我爱你。</p>
+<div class="spacer-lg"></div>
+
+<p class="mail-end">END</p>
+        </div>
+      </div>
+
+    </article>
+  </section>
+
+</main>
+
+<!-- 虚拟权限弹窗 -->
+<div id="auth-modal">
+  <div class="auth-box">
+    <div class="auth-title">SYSTEM AUTHENTICATION</div>
+    <div class="auth-desc">观测系统请求接入您的音频通道，用于同步叙事锚点。是否授权？</div>
+    <div class="auth-actions">
+      <button class="btn ghost" id="btn-auth-deny">拒绝</button>
+      <button class="btn" id="btn-auth-allow">同意</button>
+    </div>
+  </div>
+</div>
+
+<!-- 居中显示的扰动率面板 -->
+<div id="perturb-panel">
+  <div class="perturb-label">当前扰动率</div>
+  <div class="perturb" id="perturb">0.000000%</div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  const $ = s => document.querySelector(s);
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  function show(id){
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    const el = document.getElementById(id);
+    if(el) el.classList.add('active');
+    window.scrollTo(0,0);
+  }
+
+  // 动态生成兼容移动端的 SVG
+  function createMoiraiSVG(type, suffix) {
+    const idP = 'pattern-' + suffix;
+    const idM = 'mask-' + suffix;
+    
+    if (type === 'gear') {
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+          <defs>
+            <pattern id="${idP}" width="600" height="14" patternUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="600" height="8" fill="#ffffff" />
+            </pattern>
+            <mask id="${idM}" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600">
+              <rect x="0" y="0" width="600" height="600" fill="black" />
+              <rect x="0" y="0" width="600" height="600" fill="url(#${idP})" />
+            </mask>
+          </defs>
+          <g transform="translate(300, 300)">
+            <g>
+              <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="10s" begin="0.5s" repeatCount="indefinite" />
+              <g transform="scale(3) translate(-100, -100)">
+                <path fill="#ffffff" fill-rule="evenodd" shape-rendering="geometricPrecision" d="M 73.464844 8.726562 C 73.441406 8.859375 72.859375 12.199219 72.167969 16.167969 C 71.484375 20.132812 70.890625 23.425781 70.859375 23.484375 C 70.816406 23.542969 70.25 23.808594 69.582031 24.074219 C 56.675781 29.285156 45.050781 37.949219 36.367188 48.832031 C 27.367188 60.117188 21.476562 73.566406 19.375 87.582031 C 19.257812 88.382812 19.117188 89.132812 19.074219 89.242188 C 18.910156 89.648438 18.574219 92.851562 18.417969 95.617188 C 18.308594 97.535156 18.308594 102.351562 18.417969 104.375 C 18.515625 106.191406 18.675781 107.890625 18.933594 110.066406 L 19.117188 111.601562 L 18.785156 111.910156 C 18.089844 112.558594 17.167969 113.410156 16.25 114.25 C 15.726562 114.734375 15.035156 115.367188 14.707031 115.667969 C 14.007812 116.324219 13.882812 116.433594 10.359375 119.699219 C 8.832031 121.101562 7.574219 122.285156 7.550781 122.324219 C 7.523438 122.359375 8.566406 124.226562 9.859375 126.464844 C 11.148438 128.707031 17.199219 139.175781 23.292969 149.726562 C 29.382812 160.285156 34.410156 168.917969 34.457031 168.917969 C 34.507812 168.917969 35.167969 168.691406 35.925781 168.410156 C 36.675781 168.132812 38.308594 167.535156 39.542969 167.082031 C 46.875 164.398438 48.675781 163.75 48.742188 163.75 C 48.792969 163.75 49.042969 163.933594 49.316406 164.160156 C 50.839844 165.433594 54.582031 168.066406 57.042969 169.601562 C 61.207031 172.199219 66.632812 174.851562 71.707031 176.75 C 83.824219 181.292969 97.234375 182.890625 110.082031 181.332031 C 116.941406 180.5 123.867188 178.765625 130.042969 176.332031 C 130.867188 176.007812 131.617188 175.734375 131.707031 175.714844 C 132.160156 175.640625 134.824219 174.425781 137.457031 173.101562 C 141.734375 170.933594 145.476562 168.617188 149.398438 165.691406 L 151.007812 164.5 L 151.441406 164.632812 C 151.683594 164.707031 151.992188 164.800781 152.125 164.851562 C 152.515625 164.976562 156.316406 166.160156 156.875 166.324219 C 157.839844 166.617188 162.292969 168.007812 162.5 168.082031 C 162.617188 168.125 163.101562 168.273438 163.582031 168.417969 C 164.066406 168.566406 164.808594 168.792969 165.234375 168.933594 C 165.660156 169.066406 166.042969 169.167969 166.082031 169.148438 C 166.183594 169.117188 193.015625 122.660156 192.984375 122.582031 C 192.957031 122.523438 191.359375 121.175781 184.667969 115.601562 C 182.992188 114.199219 181.558594 112.992188 181.464844 112.917969 C 181.316406 112.765625 181.316406 112.742188 181.484375 111.523438 C 182.410156 105.007812 182.515625 98.558594 181.824219 91.75 C 180.226562 76.007812 174.191406 61.242188 164.285156 48.816406 C 157.933594 40.851562 149.910156 33.984375 141 28.890625 C 138.207031 27.300781 134.324219 25.390625 131.523438 24.25 C 131.140625 24.101562 130.816406 23.910156 130.800781 23.839844 C 130.773438 23.765625 130 20.351562 129.082031 16.25 C 128.160156 12.148438 127.382812 8.726562 127.367188 8.640625 C 127.324219 8.507812 125.964844 8.5 100.417969 8.5 L 73.515625 8.5 Z M 122.867188 12.976562 C 122.933594 13.199219 124.824219 21.300781 125.5 24.25 C 125.824219 25.691406 126.125 26.984375 126.160156 27.125 C 126.214844 27.359375 126.308594 27.410156 127.800781 27.984375 C 131.082031 29.25 135 31.066406 137.707031 32.582031 C 146.542969 37.515625 154.148438 43.933594 160.375 51.667969 C 170.074219 63.726562 175.898438 78.351562 177.160156 93.792969 C 177.433594 97.132812 177.484375 103.058594 177.25 105.832031 C 177.035156 108.5 176.625 111.625 176.148438 114.273438 L 176.050781 114.832031 L 176.417969 115.191406 C 176.625 115.382812 177.132812 115.824219 177.542969 116.167969 C 177.957031 116.507812 178.332031 116.832031 178.390625 116.882812 C 178.441406 116.933594 178.867188 117.292969 179.339844 117.675781 C 179.808594 118.058594 180.550781 118.675781 180.992188 119.042969 C 181.433594 119.417969 182.859375 120.609375 184.167969 121.699219 C 187.351562 124.367188 187.125 124.160156 187.023438 124.324219 C 186.984375 124.398438 181.925781 133.148438 175.800781 143.765625 C 169.101562 155.375 164.601562 163.082031 164.535156 163.082031 C 164.464844 163.082031 163.800781 162.898438 163.058594 162.675781 C 162.316406 162.449219 161.574219 162.226562 161.417969 162.183594 C 161.066406 162.089844 157.675781 161.066406 156.957031 160.839844 C 156.683594 160.75 156.125 160.582031 155.707031 160.457031 C 155.300781 160.332031 154.882812 160.199219 154.792969 160.167969 C 154.699219 160.125 154.457031 160.050781 154.25 160 C 154.042969 159.949219 153.800781 159.875 153.707031 159.832031 C 153.617188 159.792969 153.285156 159.683594 152.957031 159.601562 C 152.640625 159.507812 151.917969 159.292969 151.359375 159.125 C 150.351562 158.816406 150.339844 158.816406 150.132812 158.964844 C 150.023438 159.058594 149.390625 159.558594 148.734375 160.089844 C 146.714844 161.726562 142.992188 164.417969 142.757812 164.417969 C 142.714844 164.417969 142.339844 164.632812 141.941406 164.890625 C 138.050781 167.398438 133.199219 169.882812 128.757812 171.640625 C 121.242188 174.617188 113.785156 176.300781 105.292969 176.933594 C 103.433594 177.066406 97.234375 177.066406 95.375 176.933594 C 84.515625 176.125 74.964844 173.515625 65.667969 168.824219 C 60.851562 166.398438 55.816406 163.167969 52.042969 160.082031 C 51.726562 159.816406 51.417969 159.589844 51.359375 159.574219 C 51.308594 159.558594 50.898438 159.226562 50.457031 158.839844 L 49.648438 158.148438 L 49.257812 158.234375 C 48.882812 158.316406 48.339844 158.5 45.667969 159.5 C 44.910156 159.785156 43.074219 160.457031 41.582031 161 C 40.089844 161.542969 38.257812 162.214844 37.5 162.492188 C 36.75 162.773438 36.089844 163 36.042969 163 C 35.992188 163 30.898438 154.242188 24.714844 143.535156 L 13.476562 124.066406 L 13.757812 123.816406 C 13.917969 123.675781 14.660156 122.976562 15.417969 122.257812 C 16.175781 121.550781 17.035156 120.734375 17.332031 120.457031 C 17.632812 120.175781 18.234375 119.609375 18.667969 119.191406 C 19.101562 118.773438 19.660156 118.257812 19.910156 118.035156 C 20.160156 117.808594 20.5 117.492188 20.675781 117.332031 C 21.242188 116.800781 22.851562 115.292969 23.074219 115.089844 C 23.191406 114.984375 23.542969 114.660156 23.839844 114.367188 L 24.398438 113.832031 L 24.285156 113.234375 C 23.867188 111.066406 23.410156 107.117188 23.375 105.5 C 23.367188 104.832031 23.324219 103.035156 23.292969 101.5 C 23.191406 97.058594 23.457031 92.839844 24.125 88.457031 C 27.375 67.035156 39.464844 47.984375 57.457031 35.957031 C 62.714844 32.433594 68.617188 29.457031 74.292969 27.457031 C 75.25 27.117188 75.292969 27.089844 75.359375 26.824219 C 75.441406 26.492188 75.984375 23.449219 77.007812 17.542969 C 77.425781 15.160156 77.785156 13.125 77.808594 13.015625 L 77.851562 12.832031 L 100.332031 12.832031 C 121.683594 12.832031 122.824219 12.839844 122.867188 12.976562 Z M 122.867188 12.976562 Z" />
+              </g>
+            </g>
+          </g>
+          <g transform="translate(300,300) scale(1.02,1.2) translate(-400,-100)">
+            <text x="400" y="100" text-anchor="middle" dominant-baseline="central"
+                  font-family="'Arial Black', 'Impact', 'Helvetica Neue', sans-serif"
+                  font-weight="900" font-size="150" letter-spacing="-8"
+                  fill="#ffffff" mask="url(#${idM})">Moirai</text>
+          </g>
+        </svg>
+      `;
+    } else {
+      return `
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="100%" height="100%" style="display:block;">
+          <defs>
+            <pattern id="${idP}" width="800" height="14" patternUnits="userSpaceOnUse">
+              <rect x="0" y="0" width="800" height="8" fill="#ffffff" />
+            </pattern>
+            <mask id="${idM}">
+              <rect width="100%" height="100%" fill="black" />
+              <rect width="100%" height="100%" fill="url(#${idP})" />
+            </mask>
+          </defs>
+          <g transform="translate(400, 100) scale(0.85, 1) translate(-400, -100)">
+            <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+                  font-family="'Arial Black', 'Impact', 'Helvetica Neue', sans-serif"
+                  font-weight="900" font-size="150" letter-spacing="-8"
+                  fill="#ffffff" mask="url(#${idM})">Moirai</text>
+          </g>
+        </svg>
+      `;
+    }
+  }
+
+  /* ================= 1. 极简加载页 ================= */
+  function runLoading(){
+    const fill = $('#load-fill');
+    const pct  = $('#load-pct');
+
+    const dur = 2000;
+    const start = performance.now();
+
+    function tick(now){
+      const t = Math.min(1, (now - start) / dur);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const p = eased * 90;
+
+      fill.style.width = p + '%';
+      pct.textContent = Math.floor(p) + '%';
+
+      if(t < 1){
+        requestAnimationFrame(tick);
+      }else{
+        fill.style.width = '90%';
+        pct.textContent = '90%';
+
+        setTimeout(() => {
+          fill.style.width = '100%';
+          pct.textContent = '100%';
+
+          setTimeout(async () => {
+            setupGate();
+            show('s-gate');
+          }, 200);
+        }, 300);
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+
+  /* ================= 2. 登入页 ================= */
+  function setupGate(){
+    $('#gate-visual').innerHTML = createMoiraiSVG('gear', 'anim');
+    $('#gate-avatar').innerHTML = createMoiraiSVG('text', 'avatar');
+  }
+
+  $('#btn-login').addEventListener('click', () => {
+    startTerminal();
+  }, { once:true });
+
+  /* ================= 3. 终端打字机 ================= */
+  class Term{
+    constructor(root){
+      this.root = root;
+    }
+    wait(ms){ return wait(ms); }
+
+    async line(text, speed, cls){
+      speed = speed || 30;
+      cls = cls || '';
+      const div = document.createElement('div');
+      div.className = 'line';
+      this.root.appendChild(div);
+
+      for(let i = 0; i < text.length; i++){
+        div.textContent = text.slice(0, i + 1);
+        await wait(speed);
+      }
+
+      if(cls) div.className = 'line ' + cls;
+      return div;
+    }
+  }
+
+  function flicker(el, finalVal, duration){
+    return new Promise(resolve => {
+      const start = performance.now();
+      function step(){
+        const t = Math.min(1, (performance.now() - start) / duration);
+        if(t >= 1){
+          el.textContent = finalVal.toFixed(6) + '%';
+          el.style.opacity = '1';
+          resolve();
+          return;
+        }
+        const jitter = (Math.random() - 0.5) * 0.45 * (1 - t);
+        el.textContent = (finalVal * (1 + jitter)).toFixed(6) + '%';
+        const interval = 30 + 300 * t * t;
+        setTimeout(step, interval);
+      }
+      step();
+    });
+  }
+
+  async function revealStory(){
+    const story = document.getElementById('story');
+    story.style.display = 'block';
+    await wait(60);
+
+    const items = story.querySelectorAll('[data-anim]');
+    for(const it of items){
+      it.classList.add('in');
+      await wait(100); 
+    }
+    
+    // 显示顶部变动率
+    document.getElementById('top-perturb').style.opacity = '1';
+
+    // 设置滑动监听
+    setupScrollObservers();
+  }
+
+  // 虚拟麦克风授权
+  function requestVirtualMic(){
+    return new Promise(resolve => {
+      const modal = $('#auth-modal');
+      modal.classList.add('active');
+
+      const btnAllow = $('#btn-auth-allow');
+      const btnDeny = $('#btn-auth-deny');
+
+      const handleAllow = () => {
+        cleanup();
+        resolve(true);
+      };
+      const handleDeny = () => {
+        cleanup();
+        resolve(false);
+      };
+      const cleanup = () => {
+        modal.classList.remove('active');
+        btnAllow.removeEventListener('click', handleAllow);
+        btnDeny.removeEventListener('click', handleDeny);
+      };
+
+      btnAllow.addEventListener('click', handleAllow);
+      btnDeny.addEventListener('click', handleDeny);
+    });
+  }
+
+  /* ================= 终端主流程 ================= */
+  async function startTerminal(){
+    show('s-terminal');
+
+    const termEl = document.getElementById('term');
+    termEl.innerHTML = '';
+    termEl.style.opacity = '1';
+    termEl.style.transform = 'translateY(0)';
+
+    const panel = document.getElementById('perturb-panel');
+    panel.classList.remove('show', 'fade-up');
+    panel.style.background = ''; 
+    
+    const T = new Term(termEl);
+
+    await T.wait(800);
+    await T.line('检测权限……', 60, 'dim');
+
+    const granted = await requestVirtualMic();
+
+    await T.wait(1200);
+    if(granted){
+      await T.line('权限已通过', 50, 'ok');
+    }else{
+      await T.line('权限未通过，将以备选模式展开', 50, 'warn');
+    }
+
+    await T.wait(1500);
+    await T.line('系统初始化', 60);
+
+    await T.wait(1000);
+    const moWrap = document.createElement('div');
+    moWrap.className = 'term-moirai svg-container';
+    moWrap.innerHTML = createMoiraiSVG('text', 'term');
+    termEl.appendChild(moWrap);
+
+    await T.wait(1800);
+    await T.line('检测到上次关闭系统前存在未结束的任务', 40);
+    
+    await T.wait(1000);
+    await T.line('编号 #7593，扰动率 5.063896%', 40, 'hl');
+    
+    await T.wait(1200);
+    await T.line('正在自动恢复……', 60);
+    
+    await T.wait(1500);
+    await T.line('阿特洛波斯，已就位', 60);
+    
+    await T.wait(1000);
+    await T.line('自检完成', 60);
+    
+    await T.wait(1200);
+    await T.line('为了观测体验，阿特洛波斯已自动将叙事信息解码排版为可读内容', 35);
+
+    await T.wait(2000);
+
+    termEl.style.opacity = '0';
+    termEl.style.transform = 'translateY(-30px)';
+    await wait(800);
+
+    panel.classList.add('show');
+    await wait(100); 
+    
+    await flicker(document.getElementById('perturb'), 5.063896, 2200);
+    
+    await wait(2000);
+
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    document.getElementById('current-date-placeholder').textContent = `${y}/${m}/${d}`;
+
+    panel.classList.remove('show');
+    panel.classList.add('fade-up');
+    await wait(600); 
+
+    panel.style.display = 'none';
+    show('s-story');
+    
+    // 设置缓存
+    localStorage.setItem('story_loaded', 'true');
+
+    await revealStory();
+  }
+
+/* ================= 滚动监听（扰动率动画） ================= */
+function setupScrollObservers(){
+  const perturbTarget = document.getElementById('inline-perturb-target');
+  const perturbNum = document.getElementById('perturb-number-anim');
+
+  let perturbAnimated = false;
+
+  const perturbObserver = new IntersectionObserver((entries) => {
+    if (entries[0].isIntersecting && !perturbAnimated) {
+      perturbAnimated = true;
+      perturbNum.style.opacity = '1';
+      // 触发数值闪烁
+      flicker(perturbNum, 1.048596, 1500);
+    }
+  }, { threshold: 0.5 });
+
+  perturbObserver.observe(perturbTarget);
+}
+
+  // 初始化判断
+  if (localStorage.getItem('story_loaded') === 'true') {
+    // 如果已经看过，直接进入正文
+    show('s-story');
+    
+    // 设置当前日期
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    document.getElementById('current-date-placeholder').textContent = `${y}/${m}/${d}`;
+
+    // 直接显示所有内容，不做打点动画
+    const story = document.getElementById('story');
+    story.style.display = 'block';
+    story.querySelectorAll('[data-anim]').forEach(it => it.classList.add('in'));
+    document.getElementById('top-perturb').style.opacity = '1';
+    
+    // 初始化滚动监听（此时用户可能直接往下滑）
+    setTimeout(setupScrollObservers, 100);
+    
+  } else {
+    // 正常播放开头
+    runLoading();
+  }
+
+})();
+</script>
+
+</body>
+</html>
