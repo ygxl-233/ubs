@@ -385,25 +385,7 @@ body.light-mode #inline-perturb-target span {
     font-display: swap;
 }
 
-/* 导航栏按钮基础尺寸 */
-.desktop-navbar-button, button#mobile-toggle-sidebar {
-    width: 1.5rem;
-    height: 1.5rem;
-    cursor: pointer;
-}
-
-#desktop-toggle-sidebar, button#mobile-toggle-sidebar {
-    z-index: 1000;
-    background-image: none;
-    filter: none;
-}
-
-#desktop-search {
-    background-image: var(--icon-search);
-    filter: var(--darkmode-filter);
-    background-size: 70%;
-}
-
+/* ===== 菜单按钮：三条线 ↔ 叉号 ===== */
 #desktop-toggle-sidebar.icon,
 button#mobile-toggle-sidebar {
     -webkit-tap-highlight-color: transparent;
@@ -415,11 +397,13 @@ button#mobile-toggle-sidebar {
     outline: none;
     padding: 0;
     border: none;
-    display: flex;
+    
+    /* 布局 */
+    display: flex !important;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    gap: 0.3rem;
+    gap: 4px; /* 线条间距 */
     position: relative;
 }
 
@@ -430,12 +414,13 @@ button#mobile-toggle-sidebar:focus-visible {
     border-radius: 3px;
 }
 
+/* 绘制白色线条 */
 #desktop-toggle-sidebar span,
 button#mobile-toggle-sidebar span {
     display: block;
     width: 1.25rem;
     height: 2px;
-    background-color: #ffffff;
+    background-color: #ffffff !important;
     border-radius: 1px;
     transform-origin: center center;
     pointer-events: none;
@@ -444,9 +429,10 @@ button#mobile-toggle-sidebar span {
         opacity 0.2s ease;
 }
 
+/* 展开态：变成叉号 */
 #desktop-toggle-sidebar.active span:nth-child(1),
 button#mobile-toggle-sidebar.active span:nth-child(1) {
-    transform: translateY(6.8px) rotate(45deg);
+    transform: translateY(6px) rotate(45deg);
 }
 
 #desktop-toggle-sidebar.active span:nth-child(2),
@@ -457,7 +443,7 @@ button#mobile-toggle-sidebar.active span:nth-child(2) {
 
 #desktop-toggle-sidebar.active span:nth-child(3),
 button#mobile-toggle-sidebar.active span:nth-child(3) {
-    transform: translateY(-6.8px) rotate(-45deg);
+    transform: translateY(-6px) rotate(-45deg);
 }
 
 :root {
@@ -776,7 +762,10 @@ button#mobile-toggle-sidebar.active span:nth-child(3) {
     height: 1.5rem;
     transform: translateY(-0.15rem);
     transition: opacity var(--transition-duration-fast) ease-in-out;
-    filter: var(--darkmode-filter);
+}
+
+#desktop-navbar-left>.icon:hover {
+    opacity: 0.5;
 }
 
 #desktop-navbar-left>.icon:hover {
@@ -1757,8 +1746,8 @@ div#mobile-navbar {
         <div class="doc-content">
           <div class="section-title">？？？</div>
           <div class="doc-text">
-            <p class="no-indent">哈……哈……妈的。</p>
-            <p class="no-indent">这里……是哪？</p>
+            <p>哈……哈……妈的。</p>
+            <p>这里……是哪？</p>
           </div>
 
           <div class="action-desc">[金属碰撞声，摩擦声]</div>
@@ -1770,7 +1759,7 @@ div#mobile-navbar {
 
           <div class="section-title">？？？</div>
           <div class="doc-text">
-            <p class="no-indent">神宫寺结月，工程部博士……现在什么情况？</p>
+            <p>神宫寺结月，工程部博士……现在什么情况？</p>
           </div>
 
           <div class="section-title">晴空.AIC</div>
@@ -1798,9 +1787,9 @@ div#mobile-navbar {
         <div class="doc-content">
           <div class="section-title">神宫寺结月</div>
           <div class="doc-text">
-            <p class="no-indent">所以说，情况能有多糟糕？</p>
-            <p class="no-indent">空间站失联？遭了收容失效还是外部打击？总不能是人类文明灭绝了吧？</p>
-            <p class="no-indent" style="margin-top: 16px;">……你怎么不说话？</p>
+            <p>所以说，情况能有多糟糕？</p>
+            <p>空间站失联？遭了收容失效还是外部打击？总不能是人类文明灭绝了吧？</p>
+            <p style="margin-top: 16px;">……你怎么不说话？</p>
           </div>
 
           <div class="section-title">晴空.AIC</div>
@@ -1811,7 +1800,7 @@ div#mobile-navbar {
 
           <div class="section-title">神宫寺结月</div>
           <div class="doc-text">
-            <p class="no-indent">……多少？</p>
+            <p>……多少？</p>
           </div>
 
           <div class="section-title">晴空.AIC</div>
@@ -1823,7 +1812,7 @@ div#mobile-navbar {
 
           <div class="section-title">神宫寺结月</div>
           <div class="doc-text">
-            <p class="no-indent">我很冷静。晴空。</p>
+            <p>我很冷静。晴空。</p>
           </div>
 
           <div class="section-title">晴空.AIC</div>
@@ -1833,7 +1822,7 @@ div#mobile-navbar {
 
           <div class="section-title">神宫寺结月</div>
           <div class="doc-text">
-            <p class="no-indent">让我一个人待一会。</p>
+            <p>让我一个人待一会。</p>
           </div>
 
           <div class="section-title">晴空.AIC</div>
