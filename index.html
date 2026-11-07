@@ -385,6 +385,81 @@ body.light-mode #inline-perturb-target span {
     font-display: swap;
 }
 
+/* 导航栏按钮基础尺寸 */
+.desktop-navbar-button, button#mobile-toggle-sidebar {
+    width: 1.5rem;
+    height: 1.5rem;
+    cursor: pointer;
+}
+
+#desktop-toggle-sidebar, button#mobile-toggle-sidebar {
+    z-index: 1000;
+    background-image: none;
+    filter: none;
+}
+
+#desktop-search {
+    background-image: var(--icon-search);
+    filter: var(--darkmode-filter);
+    background-size: 70%;
+}
+
+#desktop-toggle-sidebar.icon,
+button#mobile-toggle-sidebar {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-appearance: none;
+    appearance: none;
+    outline: none;
+    padding: 0;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 0.3rem;
+    position: relative;
+}
+
+#desktop-toggle-sidebar.icon:focus-visible,
+button#mobile-toggle-sidebar:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.45);
+    outline-offset: 2px;
+    border-radius: 3px;
+}
+
+#desktop-toggle-sidebar span,
+button#mobile-toggle-sidebar span {
+    display: block;
+    width: 1.25rem;
+    height: 2px;
+    background-color: #ffffff;
+    border-radius: 1px;
+    transform-origin: center center;
+    pointer-events: none;
+    transition:
+        transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1),
+        opacity 0.2s ease;
+}
+
+#desktop-toggle-sidebar.active span:nth-child(1),
+button#mobile-toggle-sidebar.active span:nth-child(1) {
+    transform: translateY(6.8px) rotate(45deg);
+}
+
+#desktop-toggle-sidebar.active span:nth-child(2),
+button#mobile-toggle-sidebar.active span:nth-child(2) {
+    opacity: 0;
+    transform: scaleX(0);
+}
+
+#desktop-toggle-sidebar.active span:nth-child(3),
+button#mobile-toggle-sidebar.active span:nth-child(3) {
+    transform: translateY(-6.8px) rotate(-45deg);
+}
+
 :root {
     --font-sans-serif: "Sarasa Gothic SC", "微软雅黑", sans-serif;
     --font-mono: "ZSFT-hk", "JetBrains Mono", "Consolas", "Sarasa Gothic SC", "微软雅黑", monospace;
@@ -518,7 +593,7 @@ body.light-mode #inline-perturb-target span {
 }
 
 #side-bar .menu-item a:hover {
-    box-shadow: inset 0.1rem 0 var(--color-theme-bright), inset 18rem 0 var(--color-dark-layer-3);
+    box-shadow: inset 0.1rem 0 #ffffff, inset 18rem 0 var(--color-dark-layer-3);
 }
 
 #side-bar .menu-item.scp-series {
@@ -557,8 +632,8 @@ body.light-mode #inline-perturb-target span {
 
 #desktop-toggle-sidebar, button#mobile-toggle-sidebar {
     z-index: 1000;
-    background-image: var(--icon-menu);
-    filter: var(--darkmode-filter);
+    background-image: none;
+    filter: none;
 }
 
 #desktop-search {
@@ -611,7 +686,7 @@ body.light-mode #inline-perturb-target span {
     bottom: 0px;
     width: 0%;
     height: 0.15rem;
-    background-color: var(--color-theme-medium);
+    background-color: #ffffff;
     transform: translateY(-0.25rem);
     transition: width var(--transition-duration-fast) ease-in-out;
 }
@@ -668,7 +743,7 @@ body.light-mode #inline-perturb-target span {
 #desktop-navbar-right>ul>li>ul>li>a:hover {
     color: var(--color-text-layer-1);
     background-color: var(--color-dark-layer-3);
-    box-shadow: inset 0.1rem 0px 0px var(--color-theme-medium), inset 15rem 0px 0px var(--color-dark-layer-3);
+    box-shadow: inset 0.1rem 0px 0px #ffffff, inset 15rem 0px 0px var(--color-dark-layer-3);
 }
 
 #desktop-navbar-right>ul {
@@ -891,7 +966,7 @@ div#mobile-navbar-list li a {
 }
 
 div#mobile-navbar-list li a:hover {
-    box-shadow: inset 0.15rem 0 var(--color-theme-bright), inset 11rem 0 #7c68ee1b;
+    box-shadow: inset 0.15rem 0 #ffffff, inset 11rem 0 #ffffff1b;
     color: var(--color-light-layer-1);
     font-weight: bold;
 }
@@ -1157,12 +1232,14 @@ div#mobile-navbar {
     <div id="extra-div-1"></div>
     <div id="desktop-navbar">
         <div id="desktop-navbar-left">
-            <button id="desktop-toggle-sidebar" class="icon desktop-navbar-button"
-                onclick="toggleSidebar()"></button>
+<button id="desktop-toggle-sidebar" class="icon desktop-navbar-button"
+    onclick="toggleSidebar()" aria-label="打开或关闭侧栏">
+    <span></span><span></span><span></span>
+</button>
             <a id="desktop-search" class="icon desktop-navbar-button" target="_parent"
                 href="https://scp-wiki-cn.wikidot.com/search:crom"></a>
             <div id="desktop-navbar-title">
-                <a target="_parent" href="https://scp-wiki-cn.wikidot.com/"><span>ARKRING DATABASE</span></a>
+                <a target="_parent" href="https://scp-wiki-cn.wikidot.com/"><span>MOIRAI SYSTEM</span></a>
             </div>
         </div>
         <div id="desktop-navbar-center">
@@ -1396,7 +1473,10 @@ div#mobile-navbar {
 
     <!-- 移动端使用顶部导航栏 -->
     <div id="mobile-navbar">
-        <button id="mobile-toggle-sidebar" class="icon mobile-navbar-button" onclick="toggleSidebar()"></button>
+<button id="mobile-toggle-sidebar" class="icon mobile-navbar-button"
+    onclick="toggleSidebar()" aria-label="打开或关闭侧栏">
+    <span></span><span></span><span></span>
+</button>
         <ul>
             <li id="mobile-navbar-item-scp-series" onclick="showMobileNavbar('mobile-navbar-item-scp-series')" role="button" tabindex="0" aria-expanded="false">SCP系列
             </li>
@@ -4694,74 +4774,156 @@ div#mobile-navbar {
 
 <script>
 /* ======================================================================
-   导航栏 / 侧栏交互（迁移自“传汐引潮”）
-   这些函数通过内联 onclick 调用，必须位于全局作用域
+   导航栏 / 侧栏交互（行为与“传汐引潮”script.js 一致）
+   这些函数通过内联 onclick 调用，必须位于全局作用域。
    ====================================================================== */
-function toggleSidebar(){
-  const side = document.getElementById('side-bar');
-  const close = document.getElementById('close-side-bar');
-  if(!side) return;
-  const open = side.classList.toggle('open');
-  if(close) close.classList.toggle('open', open);
+
+// 桌面底部导航栏的子菜单集合（只查询一次并缓存）
+let bottomNavBars = null;
+function getBottomNavBars() {
+    if (!bottomNavBars) {
+        bottomNavBars = document.querySelectorAll("ul[id^='desktop-navbar-']");
+    }
+    return bottomNavBars;
 }
 
-/* 桌面端底部导航：点击主项展开对应面板，再次点击或点击其他主项则收起 */
-function showBottomNavBar(id){
-  const el = document.getElementById(id);
-  if(!el) return;
-  const wasOpen = el.classList.contains('open');
-
-  document.querySelectorAll('#desktop-navbar-right > ul > li > ul').forEach(u => u.classList.remove('open'));
-  document.querySelectorAll('#desktop-navbar-right > ul > li').forEach(li => li.setAttribute('aria-expanded', 'false'));
-
-  if(!wasOpen){
-    el.classList.add('open');
-    el.parentElement.setAttribute('aria-expanded', 'true');
-  }
+// 同步 aria-expanded，让读屏软件能得知子菜单的展开状态
+function syncExpandedState() {
+    getBottomNavBars().forEach(navBar => {
+        const trigger = navBar.closest('li[aria-expanded]') ||
+            document.querySelector(`li[aria-controls="${navBar.id}"]`);
+        if (trigger) trigger.setAttribute('aria-expanded', navBar.classList.contains('open') ? 'true' : 'false');
+    });
 }
 
-/* 移动端顶部导航：点击主项展开对应列表 */
-function showMobileNavbar(id){
-  const item = document.getElementById(id);
-  if(!item) return;
-  const wasSelected = item.classList.contains('selected');
-
-  document.querySelectorAll('#mobile-navbar > ul > li').forEach(li => {
-    li.classList.remove('selected');
-    li.setAttribute('aria-expanded', 'false');
-  });
-  document.querySelectorAll('#mobile-navbar-list > ul > li').forEach(li => li.classList.remove('selected'));
-
-  if(!wasSelected){
-    item.classList.add('selected');
-    item.setAttribute('aria-expanded', 'true');
-    const target = document.querySelector('#mobile-navbar-list > ul > li[data-for="' + id + '"]');
-    if(target) target.classList.add('selected');
-  }
+function closeAllBottomNavBars() {
+    getBottomNavBars().forEach(navBar => navBar.classList.remove("open"));
+    syncExpandedState();
 }
 
-/* 点击桌面导航面板以外的区域时收起面板 */
-document.addEventListener('click', function(e){
-  if(!e.target.closest('#desktop-navbar-right')){
-    document.querySelectorAll('#desktop-navbar-right > ul > li > ul').forEach(u => u.classList.remove('open'));
-    document.querySelectorAll('#desktop-navbar-right > ul > li').forEach(li => li.setAttribute('aria-expanded', 'false'));
-  }
+function showBottomNavBar(id) {
+    const bottomNavBar = document.getElementById(id);
+    if (!bottomNavBar) return;
+
+    // 已打开则本次点击是收起
+    const isOpen = bottomNavBar.classList.contains("open");
+
+    closeAllBottomNavBars();
+
+    if (!isOpen) {
+        bottomNavBar.classList.add("open");
+    }
+    syncExpandedState();
+}
+
+function toggleSidebar() {
+    const sideBar = document.getElementById("side-bar");
+    if (sideBar) sideBar.classList.toggle("open");
+
+    const closeSideBar = document.getElementById("close-side-bar");
+    if (closeSideBar) closeSideBar.classList.toggle("open");
+
+    // 关闭所有展开的底部导航子菜单
+    closeAllBottomNavBars();
+
+    // 菜单图标：三条线 ↔ 叉号
+    const isOpen = sideBar && sideBar.classList.contains("open");
+    document
+        .querySelectorAll("#desktop-toggle-sidebar, #mobile-toggle-sidebar")
+        .forEach(btn => btn.classList.toggle("active", isOpen));
+}
+
+// 移动端顶部导航：单个定时器，避免为每个列表项各排一个 setTimeout
+let mobileNavCloseTimer = 0;
+
+function closeMobileNavbar() {
+    const navbar = document.getElementById("mobile-navbar");
+    const list = document.getElementById("mobile-navbar-list");
+    if (!navbar || !list) return;
+
+    // 没有任何选中项时无需播放关闭动画
+    if (!navbar.querySelector("li.selected") && !list.querySelector("li.selected")) return;
+
+    const items = navbar.querySelectorAll("li[id^='mobile-navbar-item-']");
+    const containers = list.querySelectorAll("li[data-for^='mobile-navbar-item-']");
+
+    list.classList.add("fadeout");
+    clearTimeout(mobileNavCloseTimer);
+    mobileNavCloseTimer = setTimeout(() => {
+        items.forEach(item => item.classList.remove("selected"));
+        containers.forEach(item => item.classList.remove("selected"));
+        list.classList.remove("fadeout");
+        syncMobileExpandedState(items);
+    }, 150);
+}
+
+function syncMobileExpandedState(items) {
+    items.forEach(item => item.setAttribute('aria-expanded', item.classList.contains('selected') ? 'true' : 'false'));
+}
+
+function showMobileNavbar(id) {
+    const navbar = document.getElementById("mobile-navbar");
+    const list = document.getElementById("mobile-navbar-list");
+    if (!navbar || !list) return;
+
+    // 取消上一次的关闭动画
+    clearTimeout(mobileNavCloseTimer);
+    list.classList.remove("fadeout");
+
+    const items = navbar.querySelectorAll("li[id^='mobile-navbar-item-']");
+    const containers = list.querySelectorAll("li[data-for^='mobile-navbar-item-']");
+    const clicked = document.getElementById(id);
+    if (!clicked) return;
+
+    items.forEach(item => item.classList.remove("selected"));
+    containers.forEach(item => item.classList.remove("selected"));
+
+    clicked.classList.add("selected");
+
+    const selectedItem = list.querySelector(`li[data-for="${id}"]`);
+    if (selectedItem) selectedItem.classList.add("selected");
+
+    syncMobileExpandedState(items);
+}
+
+// 点击页面其它区域关闭导航（全局只注册一次）
+document.addEventListener("click", function (event) {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    if (!target.closest("#desktop-navbar")) {
+        closeAllBottomNavBars();
+    }
+    if (!target.closest("#mobile-navbar")) {
+        closeMobileNavbar();
+    }
 });
 
-/* ESC 关闭侧栏与导航面板 */
-document.addEventListener('keydown', function(e){
-  if(e.key === 'Escape'){
-    const side = document.getElementById('side-bar');
-    const close = document.getElementById('close-side-bar');
-    if(side && side.classList.contains('open')){
-      side.classList.remove('open');
-      if(close) close.classList.remove('open');
+// 键盘可达性：role="button" 的 li 需要自己处理 Enter / Space；Esc 关闭已展开的导航
+document.addEventListener("keydown", function (event) {
+    if (event.key === "Escape") {
+        closeAllBottomNavBars();
+        closeMobileNavbar();
+        return;
     }
-    document.querySelectorAll('#desktop-navbar-right > ul > li > ul').forEach(u => u.classList.remove('open'));
-    document.querySelectorAll('#desktop-navbar-right > ul > li').forEach(li => li.setAttribute('aria-expanded', 'false'));
-    document.querySelectorAll('#mobile-navbar > ul > li').forEach(li => li.classList.remove('selected'));
-    document.querySelectorAll('#mobile-navbar-list > ul > li').forEach(li => li.classList.remove('selected'));
-  }
+
+    if (event.key !== "Enter" && event.key !== " " && event.key !== "Spacebar") return;
+
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    if (target.getAttribute("role") !== "button") return;
+
+    event.preventDefault();
+    target.click();
+});
+
+// 移动端列表项的交错淡入延迟（与“传汐引潮”一致）
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("div#mobile-navbar-list>ul>li>ul").forEach(list => {
+        list.querySelectorAll("li>a").forEach((item, index) => {
+            item.style.animationDelay = `${index * 0.02 + Math.random() * 0.25}s`;
+        });
+    });
 });
 
 
