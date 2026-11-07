@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>直到蓝天重现</title>
+
+<!-- 字体（与“传汐引潮”一致） -->
+<link rel="preconnect" href="https://fontsapi.zeoseven.com">
+<link rel="preconnect" href="https://fontsapi-storage.zeoseven.com" crossorigin>
+<link rel="stylesheet" href="https://fontsapi.zeoseven.com/161/main/result.css">
+
 <style>
   /* ================= 基础 ================= */
   *{box-sizing:border-box;}
@@ -158,7 +164,7 @@ body.light-mode #inline-perturb-target span {
     transform: translate(-50%, 50vh);
     width: 100%; height: 100vh; background: #000;
     display: flex; flex-direction: column; justify-content: center; align-items: center;
-    opacity: 0; pointer-events: none; z-index: 100;
+    opacity: 0; pointer-events: none; z-index: 1200;
     transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease, background 0.6s ease;
   }
   
@@ -354,11 +360,1231 @@ body.light-mode #inline-perturb-target span {
     .mail-content { padding: 20px 0; font-size: 14px; }
   }
 </style>
+
+<!-- ======================================================================
+     迁移自“传汐引潮”的顶栏 / 侧栏样式
+     ====================================================================== -->
+<style id="navbar-styles">
+/* ZSFT-hk (JetBrains Mono) */
+@font-face {
+    font-family: "ZSFT-hk";
+    src: url("https://fontsapi.zeoseven.com/hk/main.woff2") format("woff2"),
+        url("https://fontsapi-storage.zeoseven.com/hk/main.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+}
+
+/* ZSFT-gc (Alata) */
+@font-face {
+    font-family: "ZSFT-gc";
+    src: url("https://fontsapi.zeoseven.com/gc/main.woff2") format("woff2"),
+        url("https://fontsapi-storage.zeoseven.com/gc/main.woff2") format("woff2");
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+}
+
+:root {
+    --font-sans-serif: "Sarasa Gothic SC", "微软雅黑", sans-serif;
+    --font-mono: "ZSFT-hk", "JetBrains Mono", "Consolas", "Sarasa Gothic SC", "微软雅黑", monospace;
+    --font-deco: "ZSFT-gc", "Alata", "Futura PT", "Century Gothic", "Sarasa Gothic SC", "微软雅黑", sans-serif;
+
+    --nav-height: 3.25rem;
+    --sidebar-width: min(22rem, 75vw);
+
+    --transition-duration: 0.3s;
+    --transition-duration-fast: 0.15s;
+
+    --darkmode-filter: invert(1) hue-rotate(180deg);
+
+    --color-dark-layer-1: #000000;
+    --color-dark-layer-2: #0B0B0B;
+    --color-dark-layer-3: #262626;
+    --color-dark-layer-4: #404040;
+    --color-background-cover: rgba(0, 0, 0, 0.85);
+    --color-dark-overlay: rgba(15, 15, 15, 0.95);
+
+    --color-light-layer-1: #FFFFFF;
+    --color-light-layer-2: #F2F2F2;
+    --color-light-layer-3: #b1b1b1;
+    --color-light-layer-4: #878787;
+
+    --color-theme-bright: #8e7aff;
+    --color-theme-medium: #7B68EE;
+    --color-theme-dark: #5141ab;
+
+    --color-text-layer-1: var(--color-light-layer-2);
+    --color-text-layer-2: var(--color-light-layer-3);
+
+    --icon-menu: url("data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktbGlzdCIgdmlld0JveD0iMCAwIDE2IDE2Ij4KICA8cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0yLjUgMTJhLjUuNSAwIDAgMSAuNS0uNWgxMGEuNS41IDAgMCAxIDAgMUgzYS41LjUgMCAwIDEtLjUtLjV6bTAtNGEuNS41IDAgMCAxIC41LS41aDEwYS41LjUgMCAwIDEgMCAxSDNhLjUuNSAwIDAgMS0uNS0uNXptMC00YS41LjUgMCAwIDEgLjUtLjVoMTBhLjUuNSAwIDAgMSAwIDFIM2EuNS41IDAgMCAxLS41LS41eiIvPgo8L3N2Zz4=");
+    --icon-search: url("data:image/svg+xml;charset=utf-8;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgZmlsbD0iY3VycmVudENvbG9yIiBjbGFzcz0iYmkgYmktc2VhcmNoIiB2aWV3Qm94PSIwIDAgMTYgMTYiPgogIDxwYXRoIGQ9Ik0xMS43NDIgMTAuMzQ0YTYuNSA2LjUgMCAxIDAtMS4zOTcgMS4zOThoLS4wMDFjLjAzLjA0LjA2Mi4wNzguMDk4LjExNWwzLjg1IDMuODVhMSAxIDAgMCAwIDEuNDE1LTEuNDE0bC0zLjg1LTMuODVhMS4wMDcgMS4wMDcgMCAwIDAtLjExNS0uMXpNMTIgNi41YTUuNSA1LjUgMCAxIDEtMTEgMCA1LjUgNS41IDAgMCAxIDExIDB6Ii8+Cjwvc3ZnPg==");
+}
+
+/* 工具类 */
+
+.icon {
+    background-color: transparent;
+    border: none;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.monospace {
+    font-family: var(--font-mono);
+}
+
+.decofont {
+    font-family: var(--font-deco);
+}
+
+/* 侧边栏 */
+
+#side-bar {
+    position: fixed;
+    top: 0px;
+    left: calc(var(--sidebar-width) * -1);
+    width: var(--sidebar-width);
+    height: 100vh;
+    overflow-y: auto;
+    background-color: var(--color-dark-layer-2);
+    z-index: 1000;
+    transition: left var(--transition-duration) ease-in-out, opacity var(--transition-duration) ease-in-out;
+    opacity: 0;
+    padding: 1rem 1rem 6rem 1rem;
+    font-family: var(--font-sans-serif);
+}
+
+#side-bar.open {
+    left: 0px;
+    opacity: 1;
+}
+
+#close-side-bar {
+    position: fixed;
+    top: 0px;
+    left: 0px;
+    width: 100vw;
+    height: 100vh;
+    z-index: 999;
+    display: block;
+    pointer-events: none;
+}
+
+#close-side-bar.open {
+    pointer-events: auto;
+}
+
+#side-bar .side-block {
+    margin-bottom: 1rem;
+}
+
+#side-bar .heading {
+    font-size: 1.25rem;
+    font-family: var(--font-deco);
+    font-weight: bold;
+    color: var(--color-text-layer-2);
+    display: flex;
+    justify-content: space-between;
+    white-space: nowrap;
+}
+
+#side-bar .heading::after {
+    content: "";
+    display: block;
+    width: 100%;
+    height: 0.15rem;
+    background-color: var(--color-dark-layer-3);
+    margin: 2.25rem 0rem 0rem 1rem;
+}
+
+#side-bar .menu-item {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    font-size: 0rem;
+}
+
+#side-bar .menu-item a {
+    font-size: 1rem;
+    min-width: 2rem;
+    display: inline-block;
+    width: 100%;
+    padding: 0.2rem 0.75rem;
+    box-shadow: inset 0.1rem 0 var(--color-dark-layer-3), inset 0rem 0 var(--color-dark-layer-3);
+    transition: box-shadow var(--transition-duration) ease-in-out;
+    color: var(--color-text-layer-2);
+}
+
+#side-bar .menu-item a:hover {
+    box-shadow: inset 0.1rem 0 var(--color-theme-bright), inset 18rem 0 var(--color-dark-layer-3);
+}
+
+#side-bar .menu-item.scp-series {
+    flex-wrap: wrap;
+}
+
+#side-bar .menu-item.scp-series a {
+    width: 20%;
+    text-align: center;
+}
+
+/* 桌面端导航栏 */
+
+#desktop-navbar {
+    position: fixed;
+    bottom: 0px;
+    left: 0px;
+    width: 100%;
+    height: var(--nav-height);
+    background-color: var(--color-dark-layer-2);
+    z-index: 1001;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: var(--font-deco);
+    box-shadow: 0px -2px 0px var(--color-dark-layer-3), 0px 13px 25px 24px rgba(0, 0, 0, 0.75);
+    animation: nav-fade-in 0s ease-in-out 0.25s forwards;
+    opacity: 0;
+}
+
+.desktop-navbar-button, button#mobile-toggle-sidebar {
+    width: 1.5rem;
+    height: 1.5rem;
+    cursor: pointer;
+}
+
+#desktop-toggle-sidebar, button#mobile-toggle-sidebar {
+    z-index: 1000;
+    background-image: var(--icon-menu);
+    filter: var(--darkmode-filter);
+}
+
+#desktop-search {
+    background-image: var(--icon-search);
+    filter: var(--darkmode-filter);
+    background-size: 70%;
+}
+
+#desktop-navbar :is(ul, li) {
+    list-style-type: none;
+}
+
+#desktop-navbar-left {
+    flex: 1;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    margin-left: 0.75rem;
+}
+
+#desktop-navbar-right>ul>li {
+    color: var(--color-text-layer-2);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: color var(--transition-duration-fast) ease-in-out;
+    display: inline-flex;
+    height: auto;
+    line-height: var(--nav-height);
+    padding: 0px 0.25rem;
+    top: -0.25rem;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    user-select: none;
+    white-space: nowrap;
+}
+
+#desktop-navbar-right>ul>li:hover {
+    color: var(--color-text-layer-1);
+}
+
+#desktop-navbar-right>ul>li:has(ul.open) {
+    color: var(--color-text-layer-1);
+}
+
+#desktop-navbar-right>ul>li::after {
+    content: "";
+    display: inline-block;
+    position: relative;
+    bottom: 0px;
+    width: 0%;
+    height: 0.15rem;
+    background-color: var(--color-theme-medium);
+    transform: translateY(-0.25rem);
+    transition: width var(--transition-duration-fast) ease-in-out;
+}
+
+#desktop-navbar-right>ul>li:has(ul.open)::after {
+    width: 100%;
+}
+
+#desktop-navbar-right>ul>li>ul {
+    display: grid;
+    position: fixed;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    bottom: calc(var(--nav-height) * 1);
+    left: 0px;
+    background-color: var(--color-background-cover);
+    padding: 1rem;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity var(--transition-duration) ease-in-out,
+        transform var(--transition-duration) ease-in-out;
+    transform: translateY(1rem);
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    grid-auto-flow: row;
+    content-visibility: hidden;
+    backdrop-filter: none;
+}
+
+#desktop-navbar-right>ul>li>ul.open {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0px);
+    content-visibility: visible;
+    backdrop-filter: blur(5px);
+}
+
+#desktop-navbar-right>ul>li>ul>li {
+    display: contents;
+}
+
+#desktop-navbar-right>ul>li>ul>li>a {
+    color: var(--color-text-layer-2);
+    text-decoration: none;
+    display: block;
+    padding: 0rem 0.5rem 0rem 1rem;
+    box-shadow: inset 0.1rem 0px 0px var(--color-dark-layer-3), inset 0rem 0px 0px var(--color-dark-layer-3);
+    transition: color var(--transition-duration) ease-in-out,
+        background-color var(--transition-duration) ease-in-out,
+        box-shadow var(--transition-duration) ease-in-out;
+}
+
+#desktop-navbar-right>ul>li>ul>li>a:hover {
+    color: var(--color-text-layer-1);
+    background-color: var(--color-dark-layer-3);
+    box-shadow: inset 0.1rem 0px 0px var(--color-theme-medium), inset 15rem 0px 0px var(--color-dark-layer-3);
+}
+
+#desktop-navbar-right>ul {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    padding-right: 0.5rem;
+    margin: 0;
+}
+
+#desktop-navbar-title {
+    font-size: 1.35rem;
+    line-height: var(--nav-height);
+    font-weight: bold;
+    color: var(--color-text-layer-2);
+    margin-left: 0.25rem;
+    transform: translateY(-0.15rem);
+    user-select: none;
+    white-space: nowrap;
+}
+
+#desktop-navbar-title a {
+    color: var(--color-text-layer-2);
+    text-decoration: none;
+}
+
+#desktop-navbar-left>.icon {
+    margin-right: 0.5rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    transform: translateY(-0.15rem);
+    transition: opacity var(--transition-duration-fast) ease-in-out;
+    filter: var(--darkmode-filter);
+}
+
+#desktop-navbar-left>.icon:hover {
+    opacity: 0.5;
+}
+
+#desktop-navbar-center {
+    display: none;
+}
+
+#extra-div-1 {
+    display: none;
+}
+
+@media screen and (max-width: 700px) {
+    #desktop-navbar {
+        display: none;
+    }
+}
+
+@media screen and (min-width: 1000px) {
+
+    #desktop-navbar {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+    }
+
+    #desktop-navbar-center {
+        display: flex;
+        justify-content: center;
+    }
+
+    #desktop-navbar-logo {
+        width: 3.5rem;
+        height: 3.5rem;
+        background-size: contain;
+        background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='38' fill='none' stroke='%23c9c9c9' stroke-width='4'/%3E%3Ccircle cx='50' cy='50' r='24' fill='none' stroke='%238e7aff' stroke-width='3' stroke-dasharray='9 7'/%3E%3Ccircle cx='50' cy='12' r='6' fill='%238e7aff'/%3E%3C/svg%3E");
+        background-position: center;
+        background-repeat: no-repeat;
+        transform: translate(0, -1.55rem) scale(2.75);
+        z-index: 999;
+        filter: drop-shadow(0px 0px 0.5rem #000000);
+        pointer-events: none;
+    }
+
+    #extra-div-1 {
+        display: block;
+        position: fixed;
+        bottom: calc(var(--nav-height) * 0.55);
+        left: 0px;
+        width: 100%;
+        height: var(--nav-height);
+        background-image: url("data:image/svg+xml;charset=utf-8;base64,PHN2ZyB3aWR0aD0iODExIiBoZWlnaHQ9IjEwMyIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIiB4bWxuczp4bGluaz0iaHR0cDovL3d3dy53My5vcmcvMTk5OS94bGluayIgeG1sOnNwYWNlPSJwcmVzZXJ2ZSIgb3ZlcmZsb3c9ImhpZGRlbiI+PGcgdHJhbnNmb3JtPSJ0cmFuc2xhdGUoLTE3OTUgLTE4ODYpIj48cGF0aCBkPSJNMTgyNy4xOSAxODg4LjUgMjU3My44MSAxODg4LjUgMjYwMy41IDE5MTguMTkgMjYwMy41IDE5ODYuNSAyNjAzLjUgMTk4Ni41IDE3OTcuNSAxOTg2LjUgMTc5Ny41IDE5ODYuNSAxNzk3LjUgMTkxOC4xOVoiIHN0cm9rZT0iIzQwNDA0MCIgc3Ryb2tlLXdpZHRoPSI0LjU4MzMzIiBzdHJva2UtbWl0ZXJsaW1pdD0iOCIgZmlsbD0iIzBEMEQwRCIgZmlsbC1ydWxlPSJldmVub2RkIi8+PC9nPjwvc3ZnPg==");
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: contain;
+        transform: scale(0.55);
+        z-index: 999;
+        opacity: 0.75;
+        animation: nav-fade-in-2 0s ease-in-out 0.5s forwards;
+        opacity: 0;
+    }
+
+}
+
+/* 移动端导航栏 */
+
+div#mobile-navbar {
+    display: none;
+}
+
+@media screen and (max-width: 700px) {
+    div#mobile-navbar {
+        display: flex !important;
+        animation: topnav-fade-in 0s ease-in-out 0.25s forwards;
+        opacity: 0;
+    }
+
+    #side-bar {
+        z-index: 1006;
+        top: var(--nav-height);
+    }
+
+    #side-bar.open~div#navbar>div#mobile-navbar div#mobile-navbar-list {
+        transform: translateX(var(--sidebar-width));
+    }
+}
+
+div#mobile-navbar {
+    position: fixed;
+    z-index: 1005;
+    top: 0px;
+    left: 0px;
+    width: 100vw;
+    height: var(--nav-height);
+    background-color: var(--color-background-cover);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0px 10px 0.5rem #0000006c;
+    font-family: var(--font-sans-serif);
+}
+
+button#mobile-toggle-sidebar {
+    width: 3rem;
+    height: 2rem;
+}
+
+div#mobile-navbar>ul {
+    list-style-type: none;
+    display: flex;
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    justify-content: space-around;
+    margin-top: 0.5rem;
+}
+
+div#mobile-navbar>ul>li {
+    list-style-type: none;
+    font-size: 1rem;
+    line-height: 1.25rem;
+    font-weight: normal;
+    color: var(--color-text-layer-2);
+    margin-left: 0.25rem;
+    transform: translateY(-0.15rem);
+    user-select: none;
+    white-space: nowrap;
+    transition: color var(--transition-duration-fast) ease-in-out,
+        font-weight var(--transition-duration-fast) ease-in-out;
+}
+
+div#mobile-navbar>ul>li.selected {
+    color: var(--color-text-layer-1);
+    font-weight: bold;
+}
+
+div#mobile-navbar>ul>li>ul {
+    position: absolute;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity var(--transition-duration-fast) ease-in-out,
+        visibility var(--transition-duration-fast) ease-in-out;
+}
+
+div#mobile-navbar-list {
+    position: fixed;
+    z-index: 1004;
+    top: var(--nav-height);
+    left: 0px;
+    width: 100vw;
+    height: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+    background-color: var(--color-background-cover);
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    align-items: center;
+    padding: 0;
+    margin: 0;
+    justify-content: space-around;
+    backdrop-filter: blur(0.5rem);
+    transition: transform var(--transition-duration) ease-in-out;
+}
+
+div#mobile-navbar-list li {
+    display: contents;
+}
+
+div#mobile-navbar-list li a {
+    list-style-type: none;
+    font-size: 0.85rem;
+    font-weight: normal;
+    user-select: none;
+    color: var(--color-light-layer-3);
+    background-color: #2b2b2b32;
+    width: 100%;
+    height: 100%;
+    display: block;
+    box-shadow: inset 0.15rem 0 var(--color-dark-layer-3), inset 0rem 0 var(--color-dark-layer-3);
+    padding: 0.55rem 1.25rem;
+    transition: box-shadow var(--transition-duration-fast) ease-in-out,
+        color var(--transition-duration-fast) ease-in-out,
+        font-weight var(--transition-duration-fast) ease-in-out;
+}
+
+div#mobile-navbar-list li a:hover {
+    box-shadow: inset 0.15rem 0 var(--color-theme-bright), inset 11rem 0 #7c68ee1b;
+    color: var(--color-light-layer-1);
+    font-weight: bold;
+}
+
+div#mobile-navbar-list ul, div#mobile-navbar-list>ul>li {
+    list-style: none;
+    display: contents;
+}
+
+div#mobile-navbar-list>ul>li>ul {
+    display: none;
+    opacity: 0;
+    pointer-events: none;
+}
+
+div#mobile-navbar-list>ul>li.selected>ul {
+    display: contents;
+    opacity: 1;
+    pointer-events: auto;
+}
+
+div#mobile-navbar-list>ul>li>ul>li a {
+    opacity: 0;
+}
+
+div#mobile-navbar-list>ul>li>ul>li a {
+    animation: topnav-item-fade-in 0.15s ease-in-out forwards 1s;
+}
+
+.fadeout {
+    animation: topnav-item-fade-in 0.15s ease-in-out forwards reverse !important;
+}
+
+@keyframes topnav-item-fade-in {
+    0% {
+        opacity: 0;
+        transform: translateY(-0.15rem);
+        pointer-events: none;
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+}
+
+/* 动画 */
+
+@keyframes nav-fade-in {
+    0% {
+        opacity: 0;
+        transform: translateY(3rem);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes nav-fade-in-2 {
+    0% {
+        opacity: 0;
+        transform: translateY(3rem) scale(0.55);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(0.55);
+    }
+}
+
+@keyframes topnav-fade-in {
+    0% {
+        opacity: 0;
+        transform: translateY(-3rem);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+div#mobile-navbar {
+    display: none;
+}
+
+/* 尊重系统的“减少动态效果”设置 */
+@media (prefers-reduced-motion: reduce) {
+    #desktop-navbar,
+    #extra-div-1,
+    #mobile-navbar,
+    #side-bar,
+    #close-side-bar,
+    #desktop-navbar *,
+    #mobile-navbar *,
+    #side-bar *,
+    #extra-div-1 {
+        animation-duration: 0.01ms !important;
+        animation-delay: 0ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
+    }
+}
+</style>
 </head>
 <body>
 
 <!-- 背景平滑过渡层 -->
 <div id="bg-transition"></div>
+
+<!-- ======================================================================
+     侧边栏（迁移自“传汐引潮”）
+     ====================================================================== -->
+<div id="side-bar">
+    <div class="side-block newcomer">
+        <div class="heading">
+            <p>新人资讯</p>
+        </div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/guide-for-newbies">新手指南</a>
+        </div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/site-rules">网站站规</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/system:join">加入网站</a></div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/how-to-write-an-scp">如何撰写一篇SCP文档</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/sandbox">沙盒</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/faq">常见问题解答</a></div>
+    </div>
+    <div class="side-block">
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/">主页</a></div>
+        <div class="heading">
+            <p>SCP-CN系列</p>
+        </div>
+        <div class="menu-item scp-series"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn">I</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-2">II</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-3">III</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-4">IV</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-5">V</a>
+            </div>
+        <div class="heading">
+            <p>SCP-CN系列故事</p>
+        </div>
+        <div class="menu-item scp-series"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-1-tales-edition">I</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-2-tales-edition">II</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-3-tales-edition">III</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-4-tales-edition">IV</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-5-tales-edition">V</a>
+            </div>
+        <div class="heading">
+            <p>SCP系列</p>
+        </div>
+        <div class="menu-item scp-series"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series">I</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-2">II</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-3">III</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-4">IV</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-5">V</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-6">VI</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-7">VII</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-8">VIII</a> |
+            <a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-9">IX</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-10">X</a>
+        </div>
+        <div class="heading">
+            <p>SCP系列故事</p>
+        </div>
+        <div class="menu-item scp-series"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-1-tales-edition">I</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-2-tales-edition">II</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-3-tales-edition">III</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-4-tales-edition">IV</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-5-tales-edition">V</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-6-tales-edition">VI</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-7-tales-edition">VII</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-series-8-tales-edition">VIII</a></div>
+        <div class="heading">
+            <p>SCP图书馆</p>
+        </div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/foundation-tales">故事</a> |
+            <a target="_parent" href="https://scp-wiki-cn.wikidot.com/foundation-tales-cn">原创故事</a> | <a
+                target="_parent" href="https://scp-wiki-cn.wikidot.com/series-archive-cn">原创系列</a>
+        </div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/canon-hub">设定</a> | <a
+                target="_parent" href="https://scp-wiki-cn.wikidot.com/canon-hub-cn">原创设定</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/goi-formats">GoI格式</a>
+        </div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/scp-international">SCP国际翻译中心</a></div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/wanderers:start">被放逐者之图书馆</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/wanderers:the-library-cn">原创中心</a>
+        </div>
+        <div class="heading">
+            <p>网站</p>
+        </div>
+        <div class="menu-item"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/most-recently-created">最近新增的页面</a></div>
+        <div class="menu-item"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/random:random-scp">随机SCP</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/random:random-tale">故事</a></div>
+        <div class="menu-item"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/random:random-scp-cn">随机原创SCP</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/random:random-tale-cn">原创故事</a></div>
+        <div class="menu-item"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/random:random-scp-cn">随机原创SCP</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/random:random-tale-cn">原创故事</a> </div>
+    </div>
+    <div class="side-block">
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/system:recent-changes">最近的更新</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/most-recently-edited">修改的页面</a>
+        </div>
+        <div class="menu-item"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/top-rated-pages">最高评分的页面</a></div>
+        <div class="menu-item"> <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/lowest-rated-pages">最低评分的页面</a></div>
+        <div class="heading">
+            <p>社交</p>
+        </div>
+        <div class="menu-item"> <a target="_parent" href="https://scp-wiki-cn.wikidot.com/forum:start">讨论区</a></div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/forum:recent-threads">最近讨论串</a> | <a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/forum:recent-posts">帖子</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/criticism-policy">批评守则</a>
+        </div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/members-pages">作者页</a> | <a
+                target="_parent" href="https://scp-wiki-cn.wikidot.com/members-pages-cn">中文分部作者页</a></div>
+        <div class="heading">
+            <p>相关网站</p>
+        </div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.comhttps://scp-tech-cn.wikidot.com/" target="_blank">SCP技术部门</a>
+        </div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.comhttps://scp-int.wikidot.com/" target="_blank">SCP国际翻译站</a>
+        </div>
+    </div>
+    <div class="side-block resources">
+        <div class="heading">
+            <p>写作指导</p>
+        </div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/guide-hub">指导中心</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/tag-guide">标签指导</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/tag-search">标签搜索</a></div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/translation-movement-guide">翻译发布及搬运指南</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/wiki-syntax">维基语法</a></div>
+        <div class="menu-item"><a target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/syntax-quick-reference">语法速查</a></div>
+        <div class="menu-item"><a target="_parent" href="https://scp-wiki-cn.wikidot.com/licensing-guide">授权指南</a>
+        </div>
+    </div>
+</div>
+
+<div id="close-side-bar" role="button" tabindex="0" aria-label="关闭侧边栏" onclick="toggleSidebar()"></div>
+
+<!-- ======================================================================
+     导航栏（迁移自“传汐引潮”）
+     ====================================================================== -->
+<div id="navbar">
+    <!-- 桌面端使用底部导航栏 -->
+    <div id="extra-div-1"></div>
+    <div id="desktop-navbar">
+        <div id="desktop-navbar-left">
+            <button id="desktop-toggle-sidebar" class="icon desktop-navbar-button"
+                onclick="toggleSidebar()"></button>
+            <a id="desktop-search" class="icon desktop-navbar-button" target="_parent"
+                href="https://scp-wiki-cn.wikidot.com/search:crom"></a>
+            <div id="desktop-navbar-title">
+                <a target="_parent" href="https://scp-wiki-cn.wikidot.com/"><span>ARKRING DATABASE</span></a>
+            </div>
+        </div>
+        <div id="desktop-navbar-center">
+            <div id="desktop-navbar-logo"></div>
+        </div>
+        <div id="desktop-navbar-right">
+            <ul>
+                <li onclick="showBottomNavBar('desktop-navbar-scp-series')" class="desktop-navbar-item" role="button" tabindex="0" aria-expanded="false">SCP系列
+                    <ul id="desktop-navbar-scp-series">
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-10">系列 X (9000 -
+                                9999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-9">系列 IX (8000 -
+                                8999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-8">系列 VIII (7000 -
+                                7999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-8-tales-edition">»
+                                系列 VIII 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-7">系列 VII (6000 -
+                                6999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-7-tales-edition">»
+                                系列 VII 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-6">系列 VI (5000 -
+                                5999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-6-tales-edition">»
+                                系列 VI 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-5">系列 V (4000 -
+                                4999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-5-tales-edition">»
+                                系列 V 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-4">系列 IV (3000 -
+                                3999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-4-tales-edition">»
+                                系列 IV 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-3">系列 III (2000 -
+                                2999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-3-tales-edition">»
+                                系列 III 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-2">系列 II (1000 -
+                                1999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-2-tales-edition">»
+                                系列 II 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series">系列 I (001 -
+                                999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-1-tales-edition">»
+                                系列 I 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/joke-scps">搞笑SCP</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/joke-scps-tales-edition">»
+                                搞笑SCP故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-ex">已解明SCP</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/explained-scps-tales-edition">» 已解明SCP故事</a>
+                        </li>
+                    </ul>
+                </li>
+                <li onclick="showBottomNavBar('desktop-navbar-stories')" class="desktop-navbar-item" role="button" tabindex="0" aria-expanded="false">故事
+                    <ul id="desktop-navbar-stories">
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/foundation-tales">基金会故事</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/canon-hub">设定</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/series-archive">故事系列</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/incident-reports-eye-witness-interviews-and-personal-logs">事故报告</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/creepy-pasta">Creepy-Pasta
+                                归档</a></li>
+                    </ul>
+                </li>
+                <li onclick="showBottomNavBar('desktop-navbar-library')" class="desktop-navbar-item" role="button" tabindex="0" aria-expanded="false">图书馆
+                    <ul id="desktop-navbar-library">
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/user-curated-lists">用户推荐清单</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-anomalous-items">异常物品记录</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-extranormal-events">超常现象记录</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-unexplained-locations">未解明地点记录</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/goi-formats">GoI格式</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/audio-adaptations">音频记录</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-artwork-hub">艺术作品</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/contest-archive">征文竞赛</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/wanderers:start">被放逐者之图书馆</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/wanderers:the-library-cn">原创图书馆中心</a></li>
+                    </ul>
+                </li>
+                <li onclick="showBottomNavBar('desktop-navbar-scp-cn-series')" class="desktop-navbar-item" role="button" tabindex="0" aria-expanded="false">SCP-CN系列
+                    <ul id="desktop-navbar-scp-cn-series">
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-5">CN系列 V
+                                (CN-4000 - CN-4999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-5-tales-edition">» CN 系列 V
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-4">CN系列 IV
+                                (CN-3000 - CN-3999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-4-tales-edition">» CN 系列 IV
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-3">CN系列 III
+                                (CN-2000 - CN-2999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-3-tales-edition">» CN 系列 III
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-2">CN系列 II
+                                (CN-1000 - CN-1999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-2-tales-edition">» CN 系列 II
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn">CN系列 I (CN-001
+                                - CN-999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-1-tales-edition">» CN 系列 I
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/joke-scps-cn">搞笑SCP-CN</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-ex-cn">已解明SCP-CN</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/explained-and-joke-cn-scps-tales-edition">搞笑和已解明SCP-CN故事</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-anomalous-items-cn">原创异常物品记录</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-extranormal-events-cn">原创超常现象记录</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/foundation-tales-cn">原创基金会故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/short-stories">原创短篇故事合集</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/canon-hub-cn">原创设定</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/series-archive-cn">原创故事系列</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/contest-archive-cn">中文分部征文竞赛</a></li>
+                    </ul>
+                </li>
+                <li onclick="showBottomNavBar('desktop-navbar-scp-international')" class="desktop-navbar-item" role="button" tabindex="0" aria-expanded="false">SCP国际
+                    <ul id="desktop-navbar-scp-international">
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-international">SCP国际翻译中心</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://scp-int.wikidot.com/">SCP国际翻译站</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.comhttp://scpfoundation.net/">Фонд
+                                SCP (-RU)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.comhttp://ko.scp-wiki.net/">SCP 재단
+                                (-KO)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://fondationscp.wikidot.com/">Fondation SCP
+                                (-FR)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://scp-wiki.net.pl/">Fundacja SCP (-PL)</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.comhttp://scp-es.com/">La
+                                Fundación SCP (-ES)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://scp-th.wikidot.com/">สถาบัน SCP
+                                (-TH)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://scp-jp.wikidot.com/">SCP財団 (-JP)</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://scp-wiki-de.wikidot.com/">SCP Foundation
+                                (-DE)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://fondazionescp.wikidot.com/">Fondazione
+                                SCP (-IT)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://scp-ukrainian.wikidot.com/">Фонд SCP
+                                (-UA)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.comhttp://scp-pt-br.wikidot.com/">Fundação SCP
+                                (-PT/BR)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.comhttp://scp-cs.wikidot.com/">SCP
+                                Nadace (-CS)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.comhttp://scp-vn.wikidot.com/">Tổ
+                                Chức SCP (-VN)</a></li>
+                    </ul>
+                </li>
+                <li onclick="showBottomNavBar('desktop-navbar-background')" class="desktop-navbar-item" role="button" tabindex="0" aria-expanded="false">背景资料
+                    <ul id="desktop-navbar-background">
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/about-the-scp-foundation">关于基金会</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/groups-of-interest">相关组织</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/object-classes">项目等级</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/personnel-and-character-dossier">职员档案</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/security-clearance-levels">安保许可等级</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/secure-facilities-locations">安保设施</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/task-forces">机动特遣队</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/departments">基金会部门</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/groups-of-interest-cn">中国相关组织</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/secure-facilities-locations-cn">中国分部设施</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/task-forces-cn">中国分部机动特遣队</a>
+                        </li>
+                    </ul>
+                </li>
+                <li onclick="showBottomNavBar('desktop-navbar-guidance')" class="desktop-navbar-item" role="button" tabindex="0" aria-expanded="false">指导
+                    <ul id="desktop-navbar-guidance">
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/guide-hub">指导中心</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/guide-for-newbies">新手指南</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/how-to-write-an-scp">如何撰写一篇SCP文档</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/image-use-policy">图像使用守则</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/licensing-guide">授权指南</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/tag-guide">标签指导</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/tag-search">标签搜索</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/translation-movement-guide">翻译发布及搬运指南</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/translation-rules">翻译与校对守则</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/faq">常见问题解答</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/site-rules">网站站规</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/deletions-guide">删帖指导</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/criticism-policy">批评守则</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/links">链接</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 移动端使用顶部导航栏 -->
+    <div id="mobile-navbar">
+        <button id="mobile-toggle-sidebar" class="icon mobile-navbar-button" onclick="toggleSidebar()"></button>
+        <ul>
+            <li id="mobile-navbar-item-scp-series" onclick="showMobileNavbar('mobile-navbar-item-scp-series')" role="button" tabindex="0" aria-expanded="false">SCP系列
+            </li>
+            <li id="mobile-navbar-item-story" onclick="showMobileNavbar('mobile-navbar-item-story')" role="button" tabindex="0" aria-expanded="false">故事</li>
+            <li id="mobile-navbar-item-library" onclick="showMobileNavbar('mobile-navbar-item-library')" role="button" tabindex="0" aria-expanded="false">图书馆</li>
+            <li id="mobile-navbar-item-background" onclick="showMobileNavbar('mobile-navbar-item-background')" role="button" tabindex="0" aria-expanded="false">背景资料
+            </li>
+            <li id="mobile-navbar-item-guide" onclick="showMobileNavbar('mobile-navbar-item-guide')" role="button" tabindex="0" aria-expanded="false">指导</li>
+        </ul>
+        <div id="mobile-navbar-list">
+            <ul>
+                <li data-for="mobile-navbar-item-scp-series">
+                    <ul>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-5">CN系列 V
+                                (CN-4000 - CN-4999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-5-tales-edition">» CN 系列 V
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-4">CN系列 IV
+                                (CN-3000 - CN-3999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-4-tales-edition">» CN 系列 IV
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-3">CN系列 III
+                                (CN-2000 - CN-2999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-3-tales-edition">» CN 系列 III
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn-2">CN系列 II
+                                (CN-1000 - CN-1999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-2-tales-edition">» CN 系列 II
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-cn">CN系列 I (CN-001
+                                - CN-999)</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-series-cn-1-tales-edition">» CN 系列 I
+                                故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/joke-scps-cn">搞笑SCP-CN</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-ex-cn">已解明SCP-CN</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-10">系列 X (9000 -
+                                9999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-9">系列 IX (8000 -
+                                8999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-8">系列 VIII (7000 -
+                                7999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-8-tales-edition">»
+                                系列 VIII 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-7">系列 VII (6000 -
+                                6999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-7-tales-edition">»
+                                系列 VII 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-6">系列 VI (5000 -
+                                5999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-6-tales-edition">»
+                                系列 VI 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-5">系列 V (4000 -
+                                4999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-5-tales-edition">»
+                                系列 V 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-4">系列 IV (3000 -
+                                3999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-4-tales-edition">»
+                                系列 IV 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-3">系列 III (2000 -
+                                2999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-3-tales-edition">»
+                                系列 III 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-2">系列 II (1000 -
+                                1999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-2-tales-edition">»
+                                系列 II 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series">系列 I (001 -
+                                999)</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-series-1-tales-edition">»
+                                系列 I 故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/joke-scps">搞笑SCP</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/joke-scps-tales-edition">»
+                                搞笑SCP故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-ex">已解明SCP</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/explained-scps-tales-edition">» 已解明SCP故事</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/scp-international">SCP国际翻译中心</a></li>
+                    </ul>
+                </li>
+                <li data-for="mobile-navbar-item-story">
+                    <ul>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/foundation-tales">基金会故事</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/canon-hub">设定</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/series-archive">故事系列</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/incident-reports-eye-witness-interviews-and-personal-logs">事故报告</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/creepy-pasta">Creepy-Pasta
+                                归档</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/foundation-tales-cn">原创基金会故事</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/short-stories">原创短篇故事合集</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/canon-hub-cn">原创设定</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/series-archive-cn">原创故事系列</a>
+                        </li>
+                    </ul>
+                </li>
+                <li data-for="mobile-navbar-item-library">
+                    <ul>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/user-curated-lists">用户推荐清单</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-anomalous-items">异常物品记录</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-extranormal-events">超常现象记录</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-unexplained-locations">未解明地点记录</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/goi-formats">GoI格式</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/audio-adaptations">音频记录</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/scp-artwork-hub">艺术作品</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/contest-archive">征文竞赛</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-anomalous-items-cn">原创异常物品记录</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/log-of-extranormal-events-cn">原创超常现象记录</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/contest-archive-cn">中文分部征文竞赛</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/wanderers:start">被放逐者之图书馆</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/wanderers:the-library-cn">原创图书馆中心</a></li>
+                    </ul>
+                </li>
+                <li data-for="mobile-navbar-item-background">
+                    <ul>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/about-the-scp-foundation">关于基金会</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/groups-of-interest">相关组织</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/object-classes">项目等级</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/personnel-and-character-dossier">职员档案</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/security-clearance-levels">安保许可等级</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/secure-facilities-locations">安保设施</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/task-forces">机动特遣队</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/departments">基金会部门</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/groups-of-interest-cn">中国相关组织</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/secure-facilities-locations-cn">中国分部设施</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/task-forces-cn">中国分部机动特遣队</a>
+                        </li>
+                    </ul>
+                </li>
+                <li data-for="mobile-navbar-item-guide">
+                    <ul>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/guide-hub">指导中心</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/guide-for-newbies">新手指南</a>
+                        </li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/how-to-write-an-scp">如何撰写一篇SCP文档</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/image-use-policy">图像使用守则</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/licensing-guide">授权指南</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/tag-guide">标签指导</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/tag-search">标签搜索</a></li>
+                        <li><a target="_parent"
+                                href="https://scp-wiki-cn.wikidot.com/translation-movement-guide">翻译发布及搬运指南</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/translation-rules">翻译与校对守则</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/faq">常见问题解答</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/site-rules">网站站规</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/deletions-guide">删帖指导</a></li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/criticism-policy">批评守则</a>
+                        </li>
+                        <li><a target="_parent" href="https://scp-wiki-cn.wikidot.com/links">链接</a></li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
 
 <main id="app">
 
@@ -3467,6 +4693,78 @@ body.light-mode #inline-perturb-target span {
 </div>
 
 <script>
+/* ======================================================================
+   导航栏 / 侧栏交互（迁移自“传汐引潮”）
+   这些函数通过内联 onclick 调用，必须位于全局作用域
+   ====================================================================== */
+function toggleSidebar(){
+  const side = document.getElementById('side-bar');
+  const close = document.getElementById('close-side-bar');
+  if(!side) return;
+  const open = side.classList.toggle('open');
+  if(close) close.classList.toggle('open', open);
+}
+
+/* 桌面端底部导航：点击主项展开对应面板，再次点击或点击其他主项则收起 */
+function showBottomNavBar(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const wasOpen = el.classList.contains('open');
+
+  document.querySelectorAll('#desktop-navbar-right > ul > li > ul').forEach(u => u.classList.remove('open'));
+  document.querySelectorAll('#desktop-navbar-right > ul > li').forEach(li => li.setAttribute('aria-expanded', 'false'));
+
+  if(!wasOpen){
+    el.classList.add('open');
+    el.parentElement.setAttribute('aria-expanded', 'true');
+  }
+}
+
+/* 移动端顶部导航：点击主项展开对应列表 */
+function showMobileNavbar(id){
+  const item = document.getElementById(id);
+  if(!item) return;
+  const wasSelected = item.classList.contains('selected');
+
+  document.querySelectorAll('#mobile-navbar > ul > li').forEach(li => {
+    li.classList.remove('selected');
+    li.setAttribute('aria-expanded', 'false');
+  });
+  document.querySelectorAll('#mobile-navbar-list > ul > li').forEach(li => li.classList.remove('selected'));
+
+  if(!wasSelected){
+    item.classList.add('selected');
+    item.setAttribute('aria-expanded', 'true');
+    const target = document.querySelector('#mobile-navbar-list > ul > li[data-for="' + id + '"]');
+    if(target) target.classList.add('selected');
+  }
+}
+
+/* 点击桌面导航面板以外的区域时收起面板 */
+document.addEventListener('click', function(e){
+  if(!e.target.closest('#desktop-navbar-right')){
+    document.querySelectorAll('#desktop-navbar-right > ul > li > ul').forEach(u => u.classList.remove('open'));
+    document.querySelectorAll('#desktop-navbar-right > ul > li').forEach(li => li.setAttribute('aria-expanded', 'false'));
+  }
+});
+
+/* ESC 关闭侧栏与导航面板 */
+document.addEventListener('keydown', function(e){
+  if(e.key === 'Escape'){
+    const side = document.getElementById('side-bar');
+    const close = document.getElementById('close-side-bar');
+    if(side && side.classList.contains('open')){
+      side.classList.remove('open');
+      if(close) close.classList.remove('open');
+    }
+    document.querySelectorAll('#desktop-navbar-right > ul > li > ul').forEach(u => u.classList.remove('open'));
+    document.querySelectorAll('#desktop-navbar-right > ul > li').forEach(li => li.setAttribute('aria-expanded', 'false'));
+    document.querySelectorAll('#mobile-navbar > ul > li').forEach(li => li.classList.remove('selected'));
+    document.querySelectorAll('#mobile-navbar-list > ul > li').forEach(li => li.classList.remove('selected'));
+  }
+});
+
+
 (function(){
   'use strict';
 
